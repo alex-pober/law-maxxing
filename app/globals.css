@@ -1,26 +1,241 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.625rem;
+  
+  /* Tokyo Night Colors */
+  /* Background: #1a1b26 -> oklch(0.19 0.04 266) */
+  --background: oklch(0.19 0.04 266);
+  
+  /* Foreground: #a9b1d6 -> oklch(0.78 0.06 250) */
+  --foreground: oklch(0.78 0.06 250);
+  
+  /* Card: #1f2335 -> oklch(0.21 0.04 266) (slightly lighter than bg) */
+  --card: oklch(0.21 0.04 266);
+  --card-foreground: oklch(0.78 0.06 250);
+  
+  /* Popover: #1f2335 */
+  --popover: oklch(0.21 0.04 266);
+  --popover-foreground: oklch(0.78 0.06 250);
+  
+  /* Primary: #7aa2f7 (Blue) -> oklch(0.69 0.15 250) */
+  --primary: oklch(0.69 0.15 250);
+  --primary-foreground: oklch(0.19 0.04 266);
+  
+  /* Secondary: #24283b (Dark Blue) -> oklch(0.23 0.04 266) */
+  --secondary: oklch(0.23 0.04 266);
+  --secondary-foreground: oklch(0.78 0.06 250);
+  
+  /* Muted: #24283b */
+  --muted: oklch(0.23 0.04 266);
+  --muted-foreground: oklch(0.55 0.05 250);
+  
+  /* Accent: #292e42 (Selection/Hover) -> oklch(0.25 0.04 266) */
+  --accent: oklch(0.25 0.04 266);
+  --accent-foreground: oklch(0.78 0.06 250);
+  
+  /* Destructive: #f7768e (Red) -> oklch(0.65 0.21 15) */
+  --destructive: oklch(0.65 0.21 15);
+  --destructive-foreground: oklch(0.19 0.04 266);
+  
+  /* Border: #414868 -> oklch(0.35 0.05 266) */
+  --border: oklch(0.35 0.05 266);
+  --input: oklch(0.35 0.05 266);
+  --ring: oklch(0.69 0.15 250);
+  
+  /* Charts - Tokyo Night Palette */
+  --chart-1: oklch(0.69 0.15 250); /* Blue */
+  --chart-2: oklch(0.75 0.15 300); /* Purple */
+  --chart-3: oklch(0.65 0.21 15);  /* Red */
+  --chart-4: oklch(0.75 0.15 160); /* Cyan/Teal */
+  --chart-5: oklch(0.85 0.15 85);  /* Orange */
+  
+  /* Sidebar - using slightly darker background */
+  --sidebar: oklch(0.17 0.04 266);
+  --sidebar-foreground: oklch(0.78 0.06 250);
+  --sidebar-primary: oklch(0.69 0.15 250);
+  --sidebar-primary-foreground: oklch(0.19 0.04 266);
+  --sidebar-accent: oklch(0.23 0.04 266);
+  --sidebar-accent-foreground: oklch(0.78 0.06 250);
+  --sidebar-border: oklch(0.35 0.05 266);
+  --sidebar-ring: oklch(0.69 0.15 250);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.35 0.05 266);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.45 0.05 266);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Prose/Markdown Styling */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: #ffffff;
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: #ffffff;
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--secondary);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5 {
+  color: #ffffff;
+}
+
+.prose strong {
+  color: #ffffff;
+}
+
+.prose h1 {
+  @apply text-3xl font-bold mt-8 mb-4;
+}
+
+.prose h2 {
+  @apply text-2xl font-semibold mt-6 mb-3;
+}
+
+.prose h3 {
+  @apply text-xl font-semibold mt-5 mb-2;
+}
+
+.prose h4 {
+  @apply text-lg font-medium mt-4 mb-2;
+}
+
+.prose h5 {
+  @apply text-base font-medium mt-3 mb-1;
+}
+
+.prose h6 {
+  @apply text-sm font-medium mt-3 mb-1 text-muted-foreground;
+}
+
+.prose ul {
+  @apply list-disc pl-6 my-4 space-y-2;
+}
+
+.prose ol {
+  @apply list-decimal pl-6 my-4 space-y-2;
+}
+
+.prose li {
+  @apply pl-1;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary/50 pl-4 my-4 italic text-muted-foreground;
+}
+
+.prose code {
+  @apply bg-secondary px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.prose pre {
+  @apply bg-secondary p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0;
+}
+
+.prose a {
+  @apply text-primary underline underline-offset-2 hover:text-primary/80;
+}
+
+.prose hr {
+  @apply border-border my-8;
+}
+
+.prose table {
+  @apply w-full my-4 border-collapse;
+}
+
+.prose th {
+  @apply border border-border px-3 py-2 text-left font-semibold bg-secondary;
+}
+
+.prose td {
+  @apply border border-border px-3 py-2;
+}
+
+.prose img {
+  @apply rounded-lg my-4;
+}
+
+.prose p {
+  @apply my-3 leading-7;
 }
