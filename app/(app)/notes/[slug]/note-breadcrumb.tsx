@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ChevronRight, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
+import React from 'react';
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -33,19 +34,17 @@ export function NoteBreadcrumb({ folderPath, noteTitle }: NoteBreadcrumbProps) {
                     </BreadcrumbLink>
                 </BreadcrumbItem>
                 {folderPath.map((folder) => (
-                    <BreadcrumbItem key={folder.id}>
-                        <BreadcrumbSeparator>
-                            <ChevronRight className="h-3.5 w-3.5" />
-                        </BreadcrumbSeparator>
-                        <BreadcrumbLink asChild>
-                            <Link href="/dashboard">{folder.name}</Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
+                    <React.Fragment key={folder.id}>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/dashboard">{folder.name}</Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                    </React.Fragment>
                 ))}
+                <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                    <BreadcrumbSeparator>
-                        <ChevronRight className="h-3.5 w-3.5" />
-                    </BreadcrumbSeparator>
                     <BreadcrumbPage className="max-w-[200px] truncate">
                         {noteTitle}
                     </BreadcrumbPage>

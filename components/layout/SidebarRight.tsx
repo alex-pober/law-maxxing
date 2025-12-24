@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TocItem {
@@ -13,17 +13,15 @@ export function SidebarRight() {
     const [headings, setHeadings] = useState<TocItem[]>([]);
     const [activeId, setActiveId] = useState<string>('');
     const [noteTitle, setNoteTitle] = useState<string>('');
+    const activeItemRef = useRef<HTMLAnchorElement>(null);
 
     const parseHeadings = useCallback(() => {
-        // Get the note title from the main h1 (not in prose/markdown)
         const titleElement = document.querySelector('main h1:not(.prose h1)');
         if (titleElement) {
             setNoteTitle(titleElement.textContent || '');
         }
 
-        // Parse headings from the rendered markdown content
-        const elements = Array.from(document.querySelectorAll('.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6'))
-            .filter((element) => element.id)
+        const elements = Array.from(document.querySelectorAll('.prose h1[id], .prose h2[id], .prose h3[id], .prose h4[id], .prose h5[id], .prose h6[id]'))
             .map((element) => ({
                 id: element.id,
                 text: element.textContent || '',
@@ -34,11 +32,9 @@ export function SidebarRight() {
     }, []);
 
     useEffect(() => {
-        // Initial parse
         // eslint-disable-next-line react-hooks/set-state-in-effect
         const elements = parseHeadings();
 
-        // Set up MutationObserver to detect content changes
         const mutationObserver = new MutationObserver(() => {
             parseHeadings();
         });
@@ -52,7 +48,6 @@ export function SidebarRight() {
             });
         }
 
-        // Intersection observer for active heading
         const intersectionObserver = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -75,7 +70,6 @@ export function SidebarRight() {
         };
     }, [parseHeadings]);
 
-    // Re-observe headings when they change
     useEffect(() => {
         const intersectionObserver = new IntersectionObserver(
             (entries) => {
@@ -96,6 +90,15 @@ export function SidebarRight() {
         return () => intersectionObserver.disconnect();
     }, [headings]);
 
+    useEffect(() => {
+        if (activeItemRef.current) {
+            activeItemRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+        }
+    }, [activeId]);
+
     const displayTitle = noteTitle || 'Outline';
 
     if (headings.length === 0) {
@@ -107,6 +110,15 @@ export function SidebarRight() {
         );
     }
 
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+        e.preventDefault();
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setActiveId(id);
+        }
+    };
+
     return (
         <div className="text-sm ">
             <p className="font-medium truncate" title={displayTitle}>{displayTitle}</p>
@@ -114,9 +126,11 @@ export function SidebarRight() {
                 {headings.map((item) => (
                     <li key={item.id} className="mt-0 pt-2">
                         <a
+                            ref={item.id === activeId ? activeItemRef : null}
                             href={`#${item.id}`}
+                            onClick={(e) => handleClick(e, item.id)}
                             className={cn(
-                                "inline-block no-underline transition-colors hover:text-foreground",
+                                "inline-block no-underline transition-colors hover:text-foreground cursor-pointer",
                                 item.id === activeId
                                     ? "font-medium text-foreground"
                                     : "text-muted-foreground"

@@ -1,16 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
 import { FolderItem } from './FolderItem'
 import { FileItem } from './FileItem'
-import { Button } from '@/components/ui/button'
-import { FolderPlus, FilePlus } from 'lucide-react'
 import { createFolder, reorderItems, moveNote } from '@/app/actions'
 import { CreateNoteDialog } from '@/components/CreateNoteDialog'
 import { Input } from '@/components/ui/input'
+import { Ellipsis, FilePlus, FolderPlus, FileText, Folder } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
     DndContext,
     closestCenter,
+    pointerWithin,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -19,13 +26,13 @@ import {
     DragOverlay,
     DragStartEvent,
     DragOverEvent,
+    CollisionDetection,
 } from '@dnd-kit/core'
 import {
     SortableContext,
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-
 interface Note {
     id: string
     title: string
@@ -50,14 +57,13 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     const [isCreatingFolder, setIsCreatingFolder] = useState(false)
     const [newFolderName, setNewFolderName] = useState('')
     const [activeId, setActiveId] = useState<string | null>(null)
-    const [activeType, setActiveType] = useState<'note' | 'folder' | null>(null)
     const [isMounted, setIsMounted] = useState(false)
+    const [isOverRootZone, setIsOverRootZone] = useState(false)
+    const rootDropRef = useRef<HTMLDivElement>(null)
 
-    // Optimistic state for immediate UI updates
     const [optimisticFolders, setOptimisticFolders] = useState<Folder[]>(folders)
     const [optimisticNotes, setOptimisticNotes] = useState<Note[]>(notes)
 
-    // Sync with server data when it changes
     useEffect(() => {
         setOptimisticFolders(folders)
     }, [folders])
@@ -66,7 +72,6 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
         setOptimisticNotes(notes)
     }, [notes])
 
-    // Prevent hydration mismatch by only rendering DndContext on client
     useEffect(() => {
         setIsMounted(true)
     }, [])
@@ -74,7 +79,7 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -82,11 +87,24 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
         })
     )
 
-    // Sort by position using optimistic state
+    // Custom collision detection: prioritize folder drops, then sortable reordering
+    const customCollisionDetection: CollisionDetection = (args) => {
+        // Check for folder droppables using pointerWithin
+        const pointerCollisions = pointerWithin(args)
+        const folderCollision = pointerCollisions.find(c =>
+            String(c.id).startsWith('folder-drop-')
+        )
+        if (folderCollision) {
+            return [folderCollision]
+        }
+
+        // Use closestCenter for sortable reordering
+        return closestCenter(args)
+    }
+
     const sortedFolders = [...optimisticFolders].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     const sortedNotes = [...optimisticNotes].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 
-    // Organize data into a tree
     const rootFolders = sortedFolders.filter(f => !f.parent_id)
     const rootNotes = sortedNotes.filter(n => !n.folder_id)
 
@@ -101,56 +119,110 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event
-        const id = active.id as string
-
-        if (notes.find(n => n.id === id)) {
-            setActiveType('note')
-        } else if (folders.find(f => f.id === id)) {
-            setActiveType('folder')
-        }
-        setActiveId(id)
+        setActiveId(active.id as string)
     }
 
     const handleDragOver = (event: DragOverEvent) => {
-        // Can be used for visual feedback when dragging over folders
+        // Manually check if pointer is over the root drop zone using collision rect
+        if (rootDropRef.current) {
+            const dropZoneRect = rootDropRef.current.getBoundingClientRect()
+
+            // Get the dragged item's current position from the collision rect
+            const activeRect = event.collisions?.[0]?.data?.droppableContainer?.rect?.current
+
+            // Also try using activatorEvent + delta as fallback
+            const activatorEvent = event.activatorEvent as PointerEvent
+            const currentX = activatorEvent?.clientX + (event.delta?.x || 0)
+            const currentY = activatorEvent?.clientY + (event.delta?.y || 0)
+
+            const isOver = currentX >= dropZoneRect.left &&
+                          currentX <= dropZoneRect.right &&
+                          currentY >= dropZoneRect.top &&
+                          currentY <= dropZoneRect.bottom
+
+            setIsOverRootZone(isOver)
+        }
     }
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event
 
         setActiveId(null)
-        setActiveType(null)
+        setIsOverRootZone(false)
+
+        const dragActiveId = active.id as string
+        const draggedNote = optimisticNotes.find(n => n.id === dragActiveId)
+
+        // Check position at drag end as well
+        let droppedOnRootZone = isOverRootZone
+        if (rootDropRef.current && !droppedOnRootZone) {
+            const dropZoneRect = rootDropRef.current.getBoundingClientRect()
+            const activatorEvent = event.activatorEvent as PointerEvent
+            const currentX = activatorEvent?.clientX + (event.delta?.x || 0)
+            const currentY = activatorEvent?.clientY + (event.delta?.y || 0)
+
+            droppedOnRootZone = currentX >= dropZoneRect.left &&
+                               currentX <= dropZoneRect.right &&
+                               currentY >= dropZoneRect.top &&
+                               currentY <= dropZoneRect.bottom
+        }
+
+        // FIRST: Check if we dropped on the root drop zone
+        if (droppedOnRootZone && draggedNote && draggedNote.folder_id) {
+            setOptimisticNotes(prev => prev.map(n =>
+                n.id === dragActiveId ? { ...n, folder_id: null } : n
+            ))
+            moveNote(dragActiveId, null)
+            return
+        }
 
         if (!over || active.id === over.id) return
 
-        const dragActiveId = active.id as string
         const overId = over.id as string
 
-        // Check if we're dragging a note
-        const draggedNote = optimisticNotes.find(n => n.id === dragActiveId)
         if (draggedNote) {
-            // Check if dropping onto a folder
-            const targetFolder = optimisticFolders.find(f => f.id === overId)
+            // Check if dropped on root zone (moving note out of folder)
+            if (overId === 'root-drop-zone') {
+                // Only move if the note is currently in a folder
+                if (draggedNote.folder_id) {
+                    setOptimisticNotes(prev => prev.map(n =>
+                        n.id === dragActiveId ? { ...n, folder_id: null } : n
+                    ))
+                    moveNote(dragActiveId, null)
+                }
+                return
+            }
+
+            // Check if dropped on a folder (either by sortable id or droppable id)
+            const folderDropId = overId.startsWith('folder-drop-') ? overId.replace('folder-drop-', '') : null
+            const targetFolder = optimisticFolders.find(f => f.id === overId || f.id === folderDropId)
             if (targetFolder) {
-                // Optimistic update: move note into folder
+                // Don't move if already in this folder
+                if (draggedNote.folder_id === targetFolder.id) return
+
                 setOptimisticNotes(prev => prev.map(n =>
                     n.id === dragActiveId ? { ...n, folder_id: targetFolder.id } : n
                 ))
-                // Server update
                 moveNote(dragActiveId, targetFolder.id)
                 return
             }
 
-            // Check if dropping onto root area or another note
             const targetNote = optimisticNotes.find(n => n.id === overId)
             if (targetNote) {
-                // Get notes in same container
+                // If dropping a note from a folder onto a root note, move to root
+                if (draggedNote.folder_id && targetNote.folder_id === null) {
+                    setOptimisticNotes(prev => prev.map(n =>
+                        n.id === dragActiveId ? { ...n, folder_id: null } : n
+                    ))
+                    moveNote(dragActiveId, null)
+                    return
+                }
+
                 const containerNotes = sortedNotes.filter(n => n.folder_id === draggedNote.folder_id)
                 const oldIndex = containerNotes.findIndex(n => n.id === dragActiveId)
                 const newIndex = containerNotes.findIndex(n => n.id === overId)
 
                 if (oldIndex !== -1 && newIndex !== -1) {
-                    // Reorder notes
                     const reordered = [...containerNotes]
                     const [removed] = reordered.splice(oldIndex, 1)
                     reordered.splice(newIndex, 0, removed)
@@ -161,7 +233,6 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                         folder_id: note.folder_id,
                     }))
 
-                    // Optimistic update
                     setOptimisticNotes(prev => {
                         const updated = [...prev]
                         updates.forEach(u => {
@@ -173,14 +244,12 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                         return updated
                     })
 
-                    // Server update
                     reorderItems(updates, 'notes')
                 }
             }
             return
         }
 
-        // Check if we're dragging a folder
         const draggedFolder = optimisticFolders.find(f => f.id === dragActiveId)
         if (draggedFolder) {
             const containerFolders = sortedFolders.filter(f => f.parent_id === draggedFolder.parent_id)
@@ -197,7 +266,6 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                     position: index,
                 }))
 
-                // Optimistic update
                 setOptimisticFolders(prev => {
                     const updated = [...prev]
                     updates.forEach(u => {
@@ -209,7 +277,6 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                     return updated
                 })
 
-                // Server update
                 reorderItems(updates, 'folders')
             }
         }
@@ -218,46 +285,81 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     const activeNote = activeId ? notes.find(n => n.id === activeId) : null
     const activeFolder = activeId ? folders.find(f => f.id === activeId) : null
 
-    // Combine IDs for sortable context
     const rootItemIds = [...rootFolders.map(f => f.id), ...rootNotes.map(n => n.id)]
 
+    // Check if currently dragging a note that's inside a folder
+    const isDraggingFromFolder = activeNote && activeNote.folder_id !== null
+
+    // Get selected folder name for display
+    const selectedFolder = selectedFolderId ? folders.find(f => f.id === selectedFolderId) : null
+
     const content = (
-        <div className="flex flex-col h-full bg-muted/10 overflow-hidden">
-            <div className="p-3 border-b flex items-center justify-between">
-                <span className="font-semibold text-sm">Explorer</span>
-                <div className="flex gap-1">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setIsCreatingFolder(true)}
-                        title="New Folder"
-                    >
-                        <FolderPlus className="h-4 w-4" />
-                    </Button>
+        <div className="flex flex-col h-full bg-sidebar select-none overflow-hidden m-1 mt-3">
+            <div className="flex justify-between gap-0.5">
+                <div className='flex ml-2 items-center gap-1.5'>
+                    <span>Notes</span>
+                    {selectedFolder && (
+                        <button
+                            onClick={() => setSelectedFolderId(null)}
+                            className="text-xs text-muted-foreground truncate max-w-[100px] hover:text-foreground flex items-center gap-0.5"
+                            title="Click to deselect folder"
+                        >
+                            <span>→ {selectedFolder.name}</span>
+                            <span className="text-[10px] opacity-60">✕</span>
+                        </button>
+                    )}
+                </div>
+                <div>
                     <CreateNoteDialog
                         variant="icon"
                         folderId={selectedFolderId}
                         trigger={
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title="New Note">
+                            <button
+                                className="p-1 hover:bg-accent rounded"
+                                title={selectedFolder ? `New note in ${selectedFolder.name}` : "New note in root"}
+                            >
                                 <FilePlus className="h-4 w-4" />
-                            </Button>
+                            </button>
                         }
                     />
+                    <button
+                        className="p-1 hover:bg-accent rounded"
+                        title="New Folder"
+                        onClick={() => setIsCreatingFolder(true)}
+                    >
+                        <FolderPlus className="h-4 w-4" />
+                    </button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="p-1 hover:bg-accent rounded" title="More Actions">
+                                <Ellipsis className="h-4 w-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setIsCreatingFolder(true)}>
+                                <FolderPlus className="h-4 w-4 mr-2" />
+                                New Folder
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
-                <div className="p-2 space-y-1">
+
+            <div className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+                <div className="py-0.5">
                     {isCreatingFolder && (
-                        <form onSubmit={handleCreateFolder} className="px-2 py-1">
+                        <form onSubmit={handleCreateFolder} className="px-2 py-0.5">
                             <Input
                                 autoFocus
                                 value={newFolderName}
                                 onChange={(e) => setNewFolderName(e.target.value)}
                                 placeholder="Folder name..."
-                                className="h-8 text-sm"
+                                className="h-[22px] text-[13px] rounded-none border-primary bg-background"
                                 onBlur={() => {
                                     if (!newFolderName.trim()) setIsCreatingFolder(false)
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Escape') setIsCreatingFolder(false)
                                 }}
                             />
                         </form>
@@ -299,6 +401,21 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                     )}
                 </div>
             </div>
+
+            {/* Drop zone OUTSIDE scroll area - always visible at bottom */}
+            <div
+                ref={rootDropRef}
+                className={cn(
+                    "mx-2 mb-2 px-3 py-3 rounded-md text-xs transition-all flex items-center justify-center shrink-0",
+                    isDraggingFromFolder
+                        ? isOverRootZone
+                            ? "border-2 border-dashed border-primary bg-primary/20 text-foreground"
+                            : "border-2 border-dashed border-border/60 text-muted-foreground"
+                        : "h-0 py-0 mb-0 overflow-hidden opacity-0"
+                )}
+            >
+                {isDraggingFromFolder ? "Drop here to move to root" : ""}
+            </div>
         </div>
     )
 
@@ -309,7 +426,7 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={customCollisionDetection}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -318,11 +435,13 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
 
             <DragOverlay>
                 {activeNote ? (
-                    <div className="flex items-center gap-2 px-2 py-1.5 text-sm bg-accent rounded-md shadow-lg">
+                    <div className="flex items-center gap-1.5 h-[22px] px-2 text-[13px] bg-accent/90 backdrop-blur-sm border border-primary/50 shadow-lg">
+                        <FileText className="h-4 w-4 shrink-0 opacity-80" />
                         <span className="truncate">{activeNote.title}</span>
                     </div>
                 ) : activeFolder ? (
-                    <div className="flex items-center gap-2 px-2 py-1.5 text-sm bg-accent rounded-md shadow-lg">
+                    <div className="flex items-center gap-1.5 h-[22px] px-2 text-[13px] bg-accent/90 backdrop-blur-sm border border-primary/50 shadow-lg">
+                        <Folder className="h-4 w-4 shrink-0 text-blue-400" />
                         <span className="truncate">{activeFolder.name}</span>
                     </div>
                 ) : null}

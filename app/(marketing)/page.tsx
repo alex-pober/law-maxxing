@@ -1,75 +1,28 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, Brain, Zap } from "lucide-react";
+import { Hero } from "@/components/marketing/Hero";
+import { Features } from "@/components/marketing/Features";
+import { SocialProof } from "@/components/marketing/SocialProof";
+import { CTA } from "@/components/marketing/CTA";
 
 export default function LandingPage() {
     return (
-        <>
-            <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
-                <div className="container px-4 md:px-6">
-                    <div className="flex flex-col items-center space-y-4 text-center">
-                        <div className="space-y-2">
-                            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-                                Master Your Law Notes with Active Recall
-                            </h1>
-                            <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                                The ultimate tool for law students. Transform your notes into powerful memory aids using our unique "Memorize Mode".
-                            </p>
-                        </div>
-                        <div className="space-x-4">
-                            <Button asChild size="lg">
-                                <Link href="/login">
-                                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                                </Link>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-100 dark:bg-gray-800">
-                <div className="container px-4 md:px-6">
-                    <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
-                        <div className="flex flex-col items-center space-y-4 text-center">
-                            <div className="p-4 bg-white dark:bg-gray-900 rounded-full">
-                                <Brain className="h-10 w-10 text-primary" />
-                            </div>
-                            <h2 className="text-xl font-bold">Active Recall</h2>
-                            <p className="text-gray-500 dark:text-gray-400">
-                                Test your knowledge by hiding words and reconstructing sentences from memory.
-                            </p>
-                        </div>
-                        <div className="flex flex-col items-center space-y-4 text-center">
-                            <div className="p-4 bg-white dark:bg-gray-900 rounded-full">
-                                <Zap className="h-10 w-10 text-primary" />
-                            </div>
-                            <h2 className="text-xl font-bold">Fast & Efficient</h2>
-                            <p className="text-gray-500 dark:text-gray-400">
-                                Built for speed. Navigate through your cases and statutes instantly.
-                            </p>
-                        </div>
-                        <div className="flex flex-col items-center space-y-4 text-center">
-                            <div className="p-4 bg-white dark:bg-gray-900 rounded-full">
-                                <BookOpen className="h-10 w-10 text-primary" />
-                            </div>
-                            <h2 className="text-xl font-bold">Organized Library</h2>
-                            <p className="text-gray-500 dark:text-gray-400">
-                                Keep all your lecture notes, case briefs, and summaries in one structured place.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-                <p className="text-xs text-gray-500 dark:text-gray-400">© 2024 Law Maxxing. All rights reserved.</p>
+        <div className="flex flex-col min-h-screen bg-[#1a1b26]">
+            <Hero />
+            <Features />
+            <SocialProof />
+            <CTA />
+
+            <footer className="flex flex-col gap-2 sm:flex-row py-8 w-full shrink-0 items-center px-4 md:px-6 border-t border-white/5 bg-[#16161e]">
+                <p className="text-xs text-[#565f89]">© 2024 Law Maxxing. All rights reserved.</p>
                 <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-                    <Link className="text-xs hover:underline underline-offset-4" href="#">
+                    <Link className="text-xs text-[#565f89] hover:text-[#a9b1d6] transition-colors" href="#">
                         Terms of Service
                     </Link>
-                    <Link className="text-xs hover:underline underline-offset-4" href="#">
+                    <Link className="text-xs text-[#565f89] hover:text-[#a9b1d6] transition-colors" href="#">
                         Privacy
                     </Link>
                 </nav>
             </footer>
-        </>
+        </div>
     );
 }

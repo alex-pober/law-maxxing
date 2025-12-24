@@ -44,10 +44,14 @@ All database mutations are in `app/actions.ts`:
 - `components/ui/` - shadcn/ui components (Radix UI primitives)
 - `components/layout/` - AppLayout, AppNavbar, SidebarLeft, SidebarRight
 - `components/file-explorer/` - FileExplorer, FolderItem, FileItem for note navigation
-- `components/BlockEditor.tsx` - Block-based markdown editor (click to edit, click outside to preview)
+- `components/BlockEditor.tsx` - Tiptap rich text editor with markdown support
+- `components/NoteRenderer.tsx` - Read-only Tiptap renderer with memorize mode
+- `lib/tiptap-extensions.ts` - Custom Tiptap extensions (HeadingWithId for TOC support)
 
 ### Key Patterns
-- Notes use markdown content (`content_markdown` field) rendered via react-markdown with remark-gfm and rehype-slug
+- Notes use markdown content (`content_markdown` field) edited and rendered via Tiptap with tiptap-markdown extension
+- Tiptap editor supports: headings, bold, italic, strikethrough, lists, task lists, blockquotes, code blocks, tables, links
+- HeadingWithId extension auto-generates slug IDs for headings (enables TOC navigation in SidebarRight)
 - Folders support nesting via `parent_id` self-reference
 - React Compiler enabled via babel-plugin-react-compiler
 - Resizable panels using react-resizable-panels (shadcn resizable component)

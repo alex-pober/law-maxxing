@@ -47,45 +47,45 @@
 :root {
   --radius: 0.625rem;
   
-  /* Tokyo Night Colors */
-  /* Background: #1a1b26 -> oklch(0.19 0.04 266) */
+  /* Tokyo Night Colors - Enhanced Contrast */
+  /* Background: #1a1b26 */
   --background: oklch(0.19 0.04 266);
-  
-  /* Foreground: #a9b1d6 -> oklch(0.78 0.06 250) */
-  --foreground: oklch(0.78 0.06 250);
-  
-  /* Card: #1f2335 -> oklch(0.21 0.04 266) (slightly lighter than bg) */
+
+  /* Foreground: Brightened for better contrast */
+  --foreground: oklch(0.88 0.04 250);
+
+  /* Card: #1f2335 (slightly lighter than bg) */
   --card: oklch(0.21 0.04 266);
-  --card-foreground: oklch(0.78 0.06 250);
-  
+  --card-foreground: oklch(0.88 0.04 250);
+
   /* Popover: #1f2335 */
   --popover: oklch(0.21 0.04 266);
-  --popover-foreground: oklch(0.78 0.06 250);
-  
-  /* Primary: #7aa2f7 (Blue) -> oklch(0.69 0.15 250) */
-  --primary: oklch(0.69 0.15 250);
+  --popover-foreground: oklch(0.88 0.04 250);
+
+  /* Primary: #7aa2f7 (Blue) - slightly brighter */
+  --primary: oklch(0.72 0.15 250);
   --primary-foreground: oklch(0.19 0.04 266);
-  
-  /* Secondary: #24283b (Dark Blue) -> oklch(0.23 0.04 266) */
+
+  /* Secondary: #24283b (Dark Blue) */
   --secondary: oklch(0.23 0.04 266);
-  --secondary-foreground: oklch(0.78 0.06 250);
-  
+  --secondary-foreground: oklch(0.88 0.04 250);
+
   /* Muted: #24283b */
   --muted: oklch(0.23 0.04 266);
-  --muted-foreground: oklch(0.55 0.05 250);
-  
-  /* Accent: #292e42 (Selection/Hover) -> oklch(0.25 0.04 266) */
+  --muted-foreground: oklch(0.68 0.04 250);
+
+  /* Accent: #292e42 (Selection/Hover) */
   --accent: oklch(0.25 0.04 266);
-  --accent-foreground: oklch(0.78 0.06 250);
+  --accent-foreground: oklch(0.88 0.04 250);
   
   /* Destructive: #f7768e (Red) -> oklch(0.65 0.21 15) */
   --destructive: oklch(0.65 0.21 15);
   --destructive-foreground: oklch(0.19 0.04 266);
   
-  /* Border: #414868 -> oklch(0.35 0.05 266) */
-  --border: oklch(0.35 0.05 266);
-  --input: oklch(0.35 0.05 266);
-  --ring: oklch(0.69 0.15 250);
+  /* Border: Slightly brighter for visibility */
+  --border: oklch(0.40 0.05 266);
+  --input: oklch(0.40 0.05 266);
+  --ring: oklch(0.72 0.15 250);
   
   /* Charts - Tokyo Night Palette */
   --chart-1: oklch(0.69 0.15 250); /* Blue */
@@ -96,13 +96,13 @@
   
   /* Sidebar - using slightly darker background */
   --sidebar: oklch(0.17 0.04 266);
-  --sidebar-foreground: oklch(0.78 0.06 250);
-  --sidebar-primary: oklch(0.69 0.15 250);
+  --sidebar-foreground: oklch(0.85 0.04 250);
+  --sidebar-primary: oklch(0.72 0.15 250);
   --sidebar-primary-foreground: oklch(0.19 0.04 266);
   --sidebar-accent: oklch(0.23 0.04 266);
-  --sidebar-accent-foreground: oklch(0.78 0.06 250);
-  --sidebar-border: oklch(0.35 0.05 266);
-  --sidebar-ring: oklch(0.69 0.15 250);
+  --sidebar-accent-foreground: oklch(0.85 0.04 250);
+  --sidebar-border: oklch(0.38 0.05 266);
+  --sidebar-ring: oklch(0.72 0.15 250);
 }
 
 @layer base {
@@ -122,11 +122,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.35 0.05 266);
+    background: oklch(0.40 0.05 266);
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.45 0.05 266);
+    background: oklch(0.50 0.05 266);
   }
 }
 
@@ -161,43 +161,68 @@
 }
 
 .prose h1 {
-  @apply text-3xl font-bold mt-8 mb-4;
+  @apply text-3xl font-bold mt-6 mb-2 leading-snug;
 }
 
 .prose h2 {
-  @apply text-2xl font-semibold mt-6 mb-3;
+  @apply text-2xl font-semibold mt-5 mb-2 leading-snug ml-4;
 }
 
 .prose h3 {
-  @apply text-xl font-semibold mt-5 mb-2;
+  @apply text-xl font-semibold mt-4 mb-2 leading-snug ml-8;
 }
 
 .prose h4 {
-  @apply text-lg font-medium mt-4 mb-2;
+  @apply text-lg font-medium mt-3 mb-2 leading-snug ml-12;
 }
 
 .prose h5 {
-  @apply text-base font-medium mt-3 mb-1;
+  @apply text-base font-medium mt-2 mb-2 leading-snug ml-16;
 }
 
 .prose h6 {
-  @apply text-sm font-medium mt-3 mb-1 text-muted-foreground;
+  @apply text-sm font-medium mt-2 mb-2 text-muted-foreground leading-snug;
 }
 
 .prose ul {
-  @apply list-disc pl-6 my-4 space-y-2;
+  @apply list-disc pl-8 my-2;
 }
 
 .prose ol {
-  @apply list-decimal pl-6 my-4 space-y-2;
+  @apply list-decimal pl-8 my-2;
+}
+
+/* Nested lists - add indentation */
+.prose ul ul,
+.prose ul ol,
+.prose ol ul,
+.prose ol ol {
+  @apply pl-8 my-1;
+}
+
+/* Deeper nesting levels */
+.prose li > ul,
+.prose li > ol {
+  @apply mt-1 mb-0;
 }
 
 .prose li {
-  @apply pl-1;
+  @apply pl-1 leading-snug;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.prose li + li {
+  @apply mt-1;
 }
 
 .prose blockquote {
-  @apply border-l-4 border-primary/50 pl-4 my-4 italic text-muted-foreground;
+  @apply border-l-4 border-primary/50 pl-4 my-2 italic text-muted-foreground leading-snug;
+}
+
+/* Nested blockquotes */
+.prose blockquote blockquote {
+  @apply ml-6 mt-2;
 }
 
 .prose code {
@@ -237,5 +262,247 @@
 }
 
 .prose p {
-  @apply my-3 leading-7;
+  @apply my-2 leading-snug;
+}
+
+/* Tiptap Editor Styles */
+.tiptap {
+  outline: none;
+}
+
+/* Add scroll margin to headings so they don't go behind sticky toolbar */
+.tiptap h1[id],
+.tiptap h2[id],
+.tiptap h3[id],
+.tiptap h4[id],
+.tiptap h5[id],
+.tiptap h6[id] {
+  scroll-margin-top: 60px;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Tiptap nested list styles */
+.tiptap ul,
+.tiptap ol {
+  padding-left: 2rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap ul {
+  list-style-type: disc;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+}
+
+/* Nested lists inherit and add indentation */
+.tiptap ul ul,
+.tiptap ul ol,
+.tiptap ol ul,
+.tiptap ol ol {
+  padding-left: 2rem;
+  margin: 0.25rem 0;
+}
+
+/* Different bullet styles for nested levels */
+.tiptap ul ul {
+  list-style-type: circle;
+}
+
+.tiptap ul ul ul {
+  list-style-type: square;
+}
+
+.tiptap li {
+  margin: 0.125rem 0;
+}
+
+.tiptap li > p {
+  margin: 0;
+}
+
+/* Task list styles */
+.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* Nested task lists */
+.tiptap ul[data-type="taskList"] ul[data-type="taskList"] {
+  padding-left: 2rem;
+}
+
+.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.tiptap ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+}
+
+.tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Table styles */
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  position: relative;
+  vertical-align: top;
+  min-width: 100px;
+}
+
+.tiptap table th {
+  background: var(--secondary);
+  font-weight: 600;
+  text-align: left;
+}
+
+.tiptap table .selectedCell {
+  background: oklch(0.69 0.15 250 / 0.1);
+}
+
+.tiptap table .column-resize-handle {
+  background-color: var(--primary);
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+}
+
+/* Code block styles */
+.tiptap pre {
+  background: var(--secondary);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+/* Horizontal rule */
+.tiptap hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+/* Blockquote styles */
+.tiptap blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+/* Nested blockquotes */
+.tiptap blockquote blockquote {
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Link styles */
+.tiptap a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tiptap a:hover {
+  opacity: 0.8;
+}
+
+/* Selection styling */
+.tiptap ::selection {
+  background: oklch(0.69 0.15 250 / 0.3);
+}
+
+/* VSCode-style File Explorer */
+.file-explorer {
+  --indent-guide-color: oklch(0.40 0.05 266 / 0.3);
+  --indent-guide-active-color: oklch(0.40 0.05 266 / 0.6);
+}
+
+/* Indent guides that appear on hover */
+.file-explorer-item {
+  position: relative;
+}
+
+/* Tree view active item indicator */
+.file-explorer-item-active {
+  position: relative;
+}
+
+.file-explorer-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--primary);
+}
+
+/* Smooth scrollbar for sidebar */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.40 0.05 266) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.40 0.05 266 / 0.5);
+  border-radius: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.50 0.05 266);
 }

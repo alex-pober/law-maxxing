@@ -1,167 +1,290 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeSlug from 'rehype-slug';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Code, Eye, WrapText } from 'lucide-react';
+import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import { HeadingWithId } from '@/lib/tiptap-extensions';
+import Link from '@tiptap/extension-link';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import Typography from '@tiptap/extension-typography';
+import { Markdown } from 'tiptap-markdown';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Code, Eye } from 'lucide-react';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-type LineSpacing = 'compact' | 'normal' | 'relaxed' | 'loose';
-
-const lineSpacingClasses: Record<LineSpacing, string> = {
-    compact: 'leading-tight',
-    normal: 'leading-normal',
-    relaxed: 'leading-relaxed',
-    loose: 'leading-loose',
-};
-
-const lineSpacingLabels: Record<LineSpacing, string> = {
-    compact: 'Compact',
-    normal: 'Normal',
-    relaxed: 'Relaxed',
-    loose: 'Loose',
-};
-
-interface Block {
-    id: string;
-    content: string;
-}
+    Bold,
+    Italic,
+    Strikethrough,
+    Code as CodeIcon,
+    List,
+    ListOrdered,
+    Quote,
+    Minus,
+    Undo,
+    Redo,
+    Heading1,
+    Heading2,
+    Heading3,
+    Heading4,
+    Heading5,
+    Link as LinkIcon,
+    CheckSquare,
+    Table as TableIcon,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface BlockEditorProps {
     initialContent: string;
-    noteId: string;
     onSave: (content: string) => Promise<void>;
 }
 
-function parseContentToBlocks(content: string): Block[] {
-    if (!content.trim()) {
-        return [{ id: crypto.randomUUID(), content: '' }];
-    }
+function MenuBar({ editor }: { editor: ReturnType<typeof useEditor> | null }) {
+    const editorState = useEditorState({
+        editor,
+        selector: (ctx) => ({
+            isBold: ctx.editor?.isActive('bold') ?? false,
+            isItalic: ctx.editor?.isActive('italic') ?? false,
+            isStrike: ctx.editor?.isActive('strike') ?? false,
+            isCode: ctx.editor?.isActive('code') ?? false,
+            isBulletList: ctx.editor?.isActive('bulletList') ?? false,
+            isOrderedList: ctx.editor?.isActive('orderedList') ?? false,
+            isTaskList: ctx.editor?.isActive('taskList') ?? false,
+            isBlockquote: ctx.editor?.isActive('blockquote') ?? false,
+            isCodeBlock: ctx.editor?.isActive('codeBlock') ?? false,
+            isLink: ctx.editor?.isActive('link') ?? false,
+            isH1: ctx.editor?.isActive('heading', { level: 1 }) ?? false,
+            isH2: ctx.editor?.isActive('heading', { level: 2 }) ?? false,
+            isH3: ctx.editor?.isActive('heading', { level: 3 }) ?? false,
+            isH4: ctx.editor?.isActive('heading', { level: 4 }) ?? false,
+            isH5: ctx.editor?.isActive('heading', { level: 5 }) ?? false,
+            canUndo: ctx.editor?.can().undo() ?? false,
+            canRedo: ctx.editor?.can().redo() ?? false,
+        }),
+    });
 
-    // Split by double newlines to create blocks (paragraphs/sections)
-    const sections = content.split(/\n\n+/);
-    return sections.map(section => ({
-        id: crypto.randomUUID(),
-        content: section.trim()
-    }));
-}
+    if (!editor) return null;
 
-function blocksToContent(blocks: Block[]): string {
-    return blocks.map(b => b.content).join('\n\n');
-}
-
-interface SingleBlockProps {
-    block: Block;
-    isEditing: boolean;
-    onFocus: () => void;
-    onBlur: () => void;
-    onChange: (content: string) => void;
-    onKeyDown: (e: React.KeyboardEvent) => void;
-    onDelete: () => void;
-    canDelete: boolean;
-    lineSpacing: LineSpacing;
-}
-
-function SingleBlock({
-    block,
-    isEditing,
-    onFocus,
-    onBlur,
-    onChange,
-    onKeyDown,
-    onDelete,
-    canDelete,
-    lineSpacing
-}: SingleBlockProps) {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-    useEffect(() => {
-        if (isEditing && textareaRef.current) {
-            textareaRef.current.focus();
-            // Move cursor to end
-            const len = textareaRef.current.value.length;
-            textareaRef.current.setSelectionRange(len, len);
-        }
-    }, [isEditing]);
-
-    // Auto-resize textarea
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-        }
-    }, [block.content, isEditing]);
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Backspace' && block.content === '' && canDelete) {
-            e.preventDefault();
-            onDelete();
-        } else {
-            onKeyDown(e);
-        }
+    const addTable = () => {
+        editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
     };
 
-    if (isEditing) {
-        return (
-            <Textarea
-                ref={textareaRef}
-                value={block.content}
-                onChange={(e) => onChange(e.target.value)}
-                onBlur={onBlur}
-                onKeyDown={handleKeyDown}
-                className="min-h-10 resize-none border-none shadow-none focus-visible:ring-1 focus-visible:ring-primary/20 bg-muted/30 font-mono text-sm"
-                placeholder="Type markdown here..."
-            />
-        );
-    }
+    const setLink = () => {
+        const previousUrl = editor.getAttributes('link').href;
+        const url = window.prompt('URL', previousUrl);
 
-    // Render mode
-    if (!block.content.trim()) {
-        return (
-            <div
-                onClick={onFocus}
-                className="min-h-10 py-2 px-3 text-muted-foreground cursor-text rounded hover:bg-muted/50 transition-colors"
-            >
-                Click to add content...
-            </div>
-        );
-    }
+        if (url === null) return;
+
+        if (url === '') {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+            return;
+        }
+
+        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    };
 
     return (
-        <div
-            onClick={onFocus}
-            className={`prose prose-slate max-w-none dark:prose-invert cursor-text rounded hover:bg-muted/30 transition-colors py-1 px-2 -mx-2 ${lineSpacingClasses[lineSpacing]}`}
-        >
-            <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeSlug]}
+        <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-background rounded-t-md">
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className={cn('h-8 w-8 p-0', editorState?.isH1 && 'bg-muted')}
+                title="Heading 1"
             >
-                {block.content}
-            </ReactMarkdown>
+                <Heading1 className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={cn('h-8 w-8 p-0', editorState?.isH2 && 'bg-muted')}
+                title="Heading 2"
+            >
+                <Heading2 className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                className={cn('h-8 w-8 p-0', editorState?.isH3 && 'bg-muted')}
+                title="Heading 3"
+            >
+                <Heading3 className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                className={cn('h-8 w-8 p-0', editorState?.isH4 && 'bg-muted')}
+                title="Heading 4"
+            >
+                <Heading4 className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}
+                className={cn('h-8 w-8 p-0', editorState?.isH5 && 'bg-muted')}
+                title="Heading 5"
+            >
+                <Heading5 className="h-4 w-4" />
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isBold && 'bg-muted')}
+                title="Bold"
+            >
+                <Bold className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isItalic && 'bg-muted')}
+                title="Italic"
+            >
+                <Italic className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isStrike && 'bg-muted')}
+                title="Strikethrough"
+            >
+                <Strikethrough className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleCode().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isCode && 'bg-muted')}
+                title="Inline Code"
+            >
+                <CodeIcon className="h-4 w-4" />
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isBulletList && 'bg-muted')}
+                title="Bullet List"
+            >
+                <List className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isOrderedList && 'bg-muted')}
+                title="Ordered List"
+            >
+                <ListOrdered className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleTaskList().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isTaskList && 'bg-muted')}
+                title="Task List"
+            >
+                <CheckSquare className="h-4 w-4" />
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isBlockquote && 'bg-muted')}
+                title="Blockquote"
+            >
+                <Quote className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                className={cn('h-8 w-8 p-0', editorState?.isCodeBlock && 'bg-muted')}
+                title="Code Block"
+            >
+                <Code className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                className="h-8 w-8 p-0"
+                title="Horizontal Rule"
+            >
+                <Minus className="h-4 w-4" />
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={setLink}
+                className={cn('h-8 w-8 p-0', editorState?.isLink && 'bg-muted')}
+                title="Link"
+            >
+                <LinkIcon className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={addTable}
+                className="h-8 w-8 p-0"
+                title="Insert Table"
+            >
+                <TableIcon className="h-4 w-4" />
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().undo().run()}
+                disabled={!editorState?.canUndo}
+                className="h-8 w-8 p-0"
+                title="Undo"
+            >
+                <Undo className="h-4 w-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => editor.chain().focus().redo().run()}
+                disabled={!editorState?.canRedo}
+                className="h-8 w-8 p-0"
+                title="Redo"
+            >
+                <Redo className="h-4 w-4" />
+            </Button>
         </div>
     );
 }
 
-export function BlockEditor({ initialContent, noteId, onSave }: BlockEditorProps) {
-    const [blocks, setBlocks] = useState<Block[]>(() => parseContentToBlocks(initialContent));
-    const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+export function BlockEditor({ initialContent, onSave }: BlockEditorProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [isRawMode, setIsRawMode] = useState(false);
     const [rawContent, setRawContent] = useState(initialContent);
-    const [lineSpacing, setLineSpacing] = useState<LineSpacing>('compact');
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
     const rawTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Auto-save with debounce
     const debouncedSave = useCallback((content: string) => {
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
@@ -178,7 +301,60 @@ export function BlockEditor({ initialContent, noteId, onSave }: BlockEditorProps
         }, 1000);
     }, [onSave]);
 
-    // Auto-resize raw textarea
+    const editor = useEditor({
+        immediatelyRender: false,
+        extensions: [
+            StarterKit.configure({
+                heading: false,
+                codeBlock: {
+                    HTMLAttributes: {
+                        class: 'tiptap-code-block',
+                    },
+                },
+            }),
+            HeadingWithId.configure({
+                levels: [1, 2, 3, 4, 5, 6],
+            }),
+            Placeholder.configure({
+                placeholder: 'Start writing...',
+            }),
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    class: 'tiptap-link',
+                },
+            }),
+            TaskList,
+            TaskItem.configure({
+                nested: true,
+            }),
+            Table.configure({
+                resizable: true,
+            }),
+            TableRow,
+            TableHeader,
+            TableCell,
+            Typography,
+            Markdown.configure({
+                html: false,
+                transformPastedText: true,
+                transformCopiedText: true,
+            }),
+        ],
+        content: initialContent,
+        editorProps: {
+            attributes: {
+                class: 'prose prose-slate max-w-none dark:prose-invert focus:outline-none min-h-[400px] px-4 py-3',
+                spellcheck: 'true',
+            },
+        },
+        onUpdate: ({ editor }) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const markdown = (editor.storage as any).markdown.getMarkdown();
+            debouncedSave(markdown);
+        },
+    });
+
     useEffect(() => {
         if (isRawMode && rawTextareaRef.current) {
             rawTextareaRef.current.style.height = 'auto';
@@ -193,107 +369,22 @@ export function BlockEditor({ initialContent, noteId, onSave }: BlockEditorProps
 
     const toggleRawMode = () => {
         if (isRawMode) {
-            // Switching from raw to block mode - parse content into blocks
-            setBlocks(parseContentToBlocks(rawContent));
+            editor?.commands.setContent(rawContent);
         } else {
-            // Switching from block to raw mode - combine blocks into content
-            setRawContent(blocksToContent(blocks));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const markdown = (editor?.storage as any)?.markdown?.getMarkdown() || '';
+            setRawContent(markdown);
         }
         setIsRawMode(!isRawMode);
-        setEditingBlockId(null);
     };
-
-    const handleBlockChange = (blockId: string, content: string) => {
-        const newBlocks = blocks.map(b =>
-            b.id === blockId ? { ...b, content } : b
-        );
-        setBlocks(newBlocks);
-        debouncedSave(blocksToContent(newBlocks));
-    };
-
-    const handleBlockFocus = (blockId: string) => {
-        setEditingBlockId(blockId);
-    };
-
-    const handleBlockBlur = () => {
-        // Small delay to allow click events on other blocks to fire first
-        setTimeout(() => {
-            setEditingBlockId(null);
-        }, 100);
-    };
-
-    const handleKeyDown = (blockId: string, e: React.KeyboardEvent) => {
-        const blockIndex = blocks.findIndex(b => b.id === blockId);
-
-        if (e.key === 'Enter' && e.shiftKey) {
-            // Shift+Enter creates a new block
-            e.preventDefault();
-            const newBlock: Block = { id: crypto.randomUUID(), content: '' };
-            const newBlocks = [
-                ...blocks.slice(0, blockIndex + 1),
-                newBlock,
-                ...blocks.slice(blockIndex + 1)
-            ];
-            setBlocks(newBlocks);
-            setEditingBlockId(newBlock.id);
-        } else if (e.key === 'ArrowDown' && e.metaKey) {
-            // Cmd+Down moves to next block
-            e.preventDefault();
-            if (blockIndex < blocks.length - 1) {
-                setEditingBlockId(blocks[blockIndex + 1].id);
-            }
-        } else if (e.key === 'ArrowUp' && e.metaKey) {
-            // Cmd+Up moves to previous block
-            e.preventDefault();
-            if (blockIndex > 0) {
-                setEditingBlockId(blocks[blockIndex - 1].id);
-            }
-        }
-    };
-
-    const handleDeleteBlock = (blockId: string) => {
-        const blockIndex = blocks.findIndex(b => b.id === blockId);
-        const newBlocks = blocks.filter(b => b.id !== blockId);
-        setBlocks(newBlocks);
-        debouncedSave(blocksToContent(newBlocks));
-
-        // Focus previous block or next if deleting first
-        if (blockIndex > 0) {
-            setEditingBlockId(newBlocks[blockIndex - 1].id);
-        } else if (newBlocks.length > 0) {
-            setEditingBlockId(newBlocks[0].id);
-        }
-    };
-
-    const addBlockAtEnd = () => {
-        const newBlock: Block = { id: crypto.randomUUID(), content: '' };
-        setBlocks([...blocks, newBlock]);
-        setEditingBlockId(newBlock.id);
-    };
-
-    // Click outside to deselect
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setEditingBlockId(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     return (
-        <div ref={containerRef} className="space-y-2">
+        <div className="space-y-2">
             <div className="flex items-center justify-between mb-4">
                 <div className="text-xs text-muted-foreground">
                     {isSaving ? 'Saving...' : 'All changes saved'}
                 </div>
                 <div className="flex items-center gap-2">
-                    {!isRawMode && (
-                        <span className="text-xs text-muted-foreground">
-                            Shift+Enter for new block
-                        </span>
-                    )}
                     <Button
                         variant="outline"
                         size="sm"
@@ -303,7 +394,7 @@ export function BlockEditor({ initialContent, noteId, onSave }: BlockEditorProps
                         {isRawMode ? (
                             <>
                                 <Eye className="h-3.5 w-3.5" />
-                                Block View
+                                Editor View
                             </>
                         ) : (
                             <>
@@ -312,63 +403,24 @@ export function BlockEditor({ initialContent, noteId, onSave }: BlockEditorProps
                             </>
                         )}
                     </Button>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-7 gap-1.5">
-                                <WrapText className="h-3.5 w-3.5" />
-                                {lineSpacingLabels[lineSpacing]}
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {(Object.keys(lineSpacingLabels) as LineSpacing[]).map((spacing) => (
-                                <DropdownMenuItem
-                                    key={spacing}
-                                    onClick={() => setLineSpacing(spacing)}
-                                    className={lineSpacing === spacing ? 'bg-accent' : ''}
-                                >
-                                    {lineSpacingLabels[spacing]}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
                 </div>
             </div>
 
             {isRawMode ? (
-                <Textarea
+                <textarea
                     ref={rawTextareaRef}
                     value={rawContent}
                     onChange={(e) => handleRawContentChange(e.target.value)}
-                    className="min-h-[400px] resize-none font-mono text-sm bg-muted/30 border-muted"
+                    className="min-h-[400px] w-full resize-none bg-muted/30 border border-muted rounded-md px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary/20 leading-snug text-base font-mono"
                     placeholder="Write your markdown here..."
                 />
             ) : (
-                <>
-                    {blocks.map((block) => (
-                        <SingleBlock
-                            key={block.id}
-                            block={block}
-                            isEditing={editingBlockId === block.id}
-                            onFocus={() => handleBlockFocus(block.id)}
-                            onBlur={handleBlockBlur}
-                            onChange={(content) => handleBlockChange(block.id, content)}
-                            onKeyDown={(e) => handleKeyDown(block.id, e)}
-                            onDelete={() => handleDeleteBlock(block.id)}
-                            canDelete={blocks.length > 1}
-                            lineSpacing={lineSpacing}
-                        />
-                    ))}
-
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={addBlockAtEnd}
-                        className="w-full justify-start text-muted-foreground hover:text-foreground"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add block
-                    </Button>
-                </>
+                <div className="border border-border rounded-md">
+                    <div className="sticky -top-6 lg:-top-8 z-10">
+                        <MenuBar editor={editor} />
+                    </div>
+                    <EditorContent editor={editor} />
+                </div>
             )}
         </div>
     );

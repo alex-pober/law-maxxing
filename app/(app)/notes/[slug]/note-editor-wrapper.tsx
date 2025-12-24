@@ -15,7 +15,6 @@ export function NoteEditorWrapper({ noteId, initialContent }: NoteEditorWrapperP
 
     return (
         <BlockEditor
-            noteId={noteId}
             initialContent={initialContent}
             onSave={handleSave}
         />

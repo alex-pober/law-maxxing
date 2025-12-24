@@ -1,9 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeSlug from 'rehype-slug';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { HeadingWithId } from '@/lib/tiptap-extensions';
+import Link from '@tiptap/extension-link';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import Typography from '@tiptap/extension-typography';
+import { Markdown } from 'tiptap-markdown';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -15,6 +21,49 @@ export function NoteRenderer({ content }: NoteRendererProps) {
     const [isMemorizeMode, setIsMemorizeMode] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
+    const editor = useEditor({
+        immediatelyRender: false,
+        extensions: [
+            StarterKit.configure({
+                heading: false,
+            }),
+            HeadingWithId.configure({
+                levels: [1, 2, 3, 4, 5, 6],
+            }),
+            Link.configure({
+                openOnClick: true,
+            }),
+            TaskList,
+            TaskItem.configure({
+                nested: true,
+            }),
+            Table.configure({
+                resizable: false,
+            }),
+            TableRow,
+            TableHeader,
+            TableCell,
+            Typography,
+            Markdown.configure({
+                html: false,
+            }),
+        ],
+        content: content,
+        editable: false,
+        editorProps: {
+            attributes: {
+                class: 'prose prose-slate max-w-none dark:prose-invert focus:outline-none',
+            },
+        },
+    });
+
+    useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (editor && content !== (editor.storage as any).markdown.getMarkdown()) {
+            editor.commands.setContent(content);
+        }
+    }, [content, editor]);
+
     useEffect(() => {
         if (!isMemorizeMode || !contentRef.current) return;
 
@@ -25,22 +74,18 @@ export function NoteRenderer({ content }: NoteRendererProps) {
                 let match;
                 let lastIndex = 0;
 
-                // If no matches, don't do anything to avoid unnecessary DOM manipulation
                 if (!regex.test(text)) return;
                 regex.lastIndex = 0; // Reset after test
 
                 const fragment = document.createDocumentFragment();
 
                 while ((match = regex.exec(text)) !== null) {
-                    // Append text before the match
                     if (match.index > lastIndex) {
                         fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
                     }
 
-                    // Append first letter
                     fragment.appendChild(document.createTextNode(match[1]));
 
-                    // Append hidden part
                     const span = document.createElement('span');
                     span.style.visibility = 'hidden';
                     span.textContent = match[2];
@@ -49,7 +94,6 @@ export function NoteRenderer({ content }: NoteRendererProps) {
                     lastIndex = regex.lastIndex;
                 }
 
-                // Append remaining text
                 if (lastIndex < text.length) {
                     fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
                 }
@@ -60,8 +104,6 @@ export function NoteRenderer({ content }: NoteRendererProps) {
             }
         };
 
-        // We need to wait for the render to complete? 
-        // useEffect runs after render.
         walk(contentRef.current);
 
     }, [isMemorizeMode, content]);
@@ -91,17 +133,9 @@ export function NoteRenderer({ content }: NoteRendererProps) {
 
             <div
                 ref={contentRef}
-                // Changing the key forces a re-render when mode toggles, 
-                // resetting the DOM to the original markdown before the effect runs.
                 key={isMemorizeMode ? 'memorize' : 'normal'}
-                className="prose prose-slate max-w-none dark:prose-invert"
             >
-                <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeSlug]}
-                >
-                    {content}
-                </ReactMarkdown>
+                <EditorContent editor={editor} />
             </div>
         </div>
     );
