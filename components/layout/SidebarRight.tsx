@@ -123,8 +123,8 @@ export function SidebarRight() {
         <div className="text-sm ">
             <p className="font-medium truncate" title={displayTitle}>{displayTitle}</p>
             <ul className="m-0 list-none">
-                {headings.map((item) => (
-                    <li key={item.id} className="mt-0 pt-2">
+                {headings.map((item, index) => (
+                    <li key={`${item.id}-${index}`} className="mt-0 pt-2">
                         <a
                             ref={item.id === activeId ? activeItemRef : null}
                             href={`#${item.id}`}

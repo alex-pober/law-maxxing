@@ -5,7 +5,7 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Trash2, Pencil, Gl
 import { cn } from '@/lib/utils'
 import { FileItem } from './FileItem'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu'
-import { createFolder, deleteFolder, toggleFolderPublic } from '@/app/actions'
+import { createFolder, deleteFolder, toggleFolderPublic, renameFolder } from '@/app/actions'
 import { Input } from '@/components/ui/input'
 import { useSortable } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
@@ -36,14 +36,19 @@ interface FolderItemProps {
     isMounted?: boolean
     selectedFolderId?: string | null
     onSelect?: (id: string | null) => void
+    isSelectMode?: boolean
+    selectedNoteIds?: Set<string>
+    onToggleNoteSelection?: (noteId: string) => void
 }
 
 const INDENT_SIZE = 8 // pixels per indent level
 
-export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted = false, selectedFolderId, onSelect }: FolderItemProps) {
+export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted = false, selectedFolderId, onSelect, isSelectMode, selectedNoteIds, onToggleNoteSelection }: FolderItemProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isCreatingSubFolder, setIsCreatingSubFolder] = useState(false)
     const [newSubFolderName, setNewSubFolderName] = useState('')
+    const [isRenaming, setIsRenaming] = useState(false)
+    const [renamingValue, setRenamingValue] = useState(folder.name)
 
     const {
         attributes,
@@ -89,6 +94,20 @@ export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted 
 
     const handleTogglePublic = async () => {
         await toggleFolderPublic(folder.id, !folder.is_public)
+    }
+
+    const handleRename = async (e?: React.FormEvent) => {
+        e?.preventDefault()
+        e?.stopPropagation()
+        if (renamingValue.trim() && renamingValue !== folder.name) {
+            await renameFolder(folder.id, renamingValue.trim())
+        }
+        setIsRenaming(false)
+    }
+
+    const handleStartRename = () => {
+        setRenamingValue(folder.name)
+        setIsRenaming(true)
     }
 
     const isSelected = selectedFolderId === folder.id
@@ -155,9 +174,34 @@ export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted 
                             <Folder className="h-4 w-4 shrink-0 text-[#dcb67a] mr-1.5" />
                         )}
 
-                        <span className="truncate flex-1 text-sidebar-foreground">{folder.name}</span>
+                        {isRenaming ? (
+                            <form onSubmit={handleRename} className="flex-1 mr-1">
+                                <Input
+                                    autoFocus
+                                    value={renamingValue}
+                                    onChange={(e) => setRenamingValue(e.target.value)}
+                                    className="h-[18px] text-[13px] rounded-sm border-primary bg-background px-1"
+                                    onFocus={(e) => e.target.select()}
+                                    onBlur={() => handleRename()}
+                                    onKeyDown={(e) => {
+                                        e.stopPropagation()
+                                        if (e.key === 'Escape') {
+                                            e.preventDefault()
+                                            setRenamingValue(folder.name)
+                                            setIsRenaming(false)
+                                        } else if (e.key === 'Enter') {
+                                            e.preventDefault()
+                                            handleRename()
+                                        }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </form>
+                        ) : (
+                            <span className="truncate flex-1 text-sidebar-foreground">{folder.name}</span>
+                        )}
 
-                        {folder.is_public && (
+                        {folder.is_public && !isRenaming && (
                             <Globe className="h-3 w-3 shrink-0 text-emerald-500 ml-1" />
                         )}
                     </div>
@@ -183,7 +227,7 @@ export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted 
                             </>
                         )}
                     </ContextMenuItem>
-                    <ContextMenuItem>
+                    <ContextMenuItem onClick={handleStartRename}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Rename
                     </ContextMenuItem>
@@ -234,10 +278,21 @@ export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted 
                                     isMounted={isMounted}
                                     selectedFolderId={selectedFolderId}
                                     onSelect={onSelect}
+                                    isSelectMode={isSelectMode}
+                                    selectedNoteIds={selectedNoteIds}
+                                    onToggleNoteSelection={onToggleNoteSelection}
                                 />
                             ))}
                             {childNotes.map(note => (
-                                <FileItem key={note.id} note={note} level={level + 1} isMounted={isMounted} />
+                                <FileItem
+                                    key={note.id}
+                                    note={note}
+                                    level={level + 1}
+                                    isMounted={isMounted}
+                                    isSelectMode={isSelectMode}
+                                    isSelected={selectedNoteIds?.has(note.id)}
+                                    onToggleSelection={onToggleNoteSelection}
+                                />
                             ))}
                         </SortableContext>
                     ) : (
@@ -252,10 +307,21 @@ export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted 
                                     isMounted={isMounted}
                                     selectedFolderId={selectedFolderId}
                                     onSelect={onSelect}
+                                    isSelectMode={isSelectMode}
+                                    selectedNoteIds={selectedNoteIds}
+                                    onToggleNoteSelection={onToggleNoteSelection}
                                 />
                             ))}
                             {childNotes.map(note => (
-                                <FileItem key={note.id} note={note} level={level + 1} isMounted={isMounted} />
+                                <FileItem
+                                    key={note.id}
+                                    note={note}
+                                    level={level + 1}
+                                    isMounted={isMounted}
+                                    isSelectMode={isSelectMode}
+                                    isSelected={selectedNoteIds?.has(note.id)}
+                                    onToggleSelection={onToggleNoteSelection}
+                                />
                             ))}
                         </>
                     )}

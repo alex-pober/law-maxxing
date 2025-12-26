@@ -46,63 +46,63 @@
 
 :root {
   --radius: 0.625rem;
-  
-  /* Tokyo Night Colors - Enhanced Contrast */
+
+  /* Tokyo Night Colors - Softer, easier on eyes */
   /* Background: #1a1b26 */
   --background: oklch(0.19 0.04 266);
 
-  /* Foreground: Brightened for better contrast */
-  --foreground: oklch(0.88 0.04 250);
+  /* Foreground: #a9b1d6 - softer gray-blue */
+  --foreground: oklch(0.75 0.03 260);
 
   /* Card: #1f2335 (slightly lighter than bg) */
   --card: oklch(0.21 0.04 266);
-  --card-foreground: oklch(0.88 0.04 250);
+  --card-foreground: oklch(0.75 0.03 260);
 
   /* Popover: #1f2335 */
   --popover: oklch(0.21 0.04 266);
-  --popover-foreground: oklch(0.88 0.04 250);
+  --popover-foreground: oklch(0.75 0.03 260);
 
-  /* Primary: #7aa2f7 (Blue) - slightly brighter */
-  --primary: oklch(0.72 0.15 250);
+  /* Primary: #7aa2f7 (Blue) */
+  --primary: oklch(0.70 0.12 250);
   --primary-foreground: oklch(0.19 0.04 266);
 
   /* Secondary: #24283b (Dark Blue) */
   --secondary: oklch(0.23 0.04 266);
-  --secondary-foreground: oklch(0.88 0.04 250);
+  --secondary-foreground: oklch(0.75 0.03 260);
 
   /* Muted: #24283b */
   --muted: oklch(0.23 0.04 266);
-  --muted-foreground: oklch(0.68 0.04 250);
+  --muted-foreground: oklch(0.58 0.03 260);
 
   /* Accent: #292e42 (Selection/Hover) */
   --accent: oklch(0.25 0.04 266);
-  --accent-foreground: oklch(0.88 0.04 250);
-  
-  /* Destructive: #f7768e (Red) -> oklch(0.65 0.21 15) */
-  --destructive: oklch(0.65 0.21 15);
+  --accent-foreground: oklch(0.75 0.03 260);
+
+  /* Destructive: #f7768e (Red) */
+  --destructive: oklch(0.65 0.18 15);
   --destructive-foreground: oklch(0.19 0.04 266);
-  
-  /* Border: Slightly brighter for visibility */
-  --border: oklch(0.40 0.05 266);
-  --input: oklch(0.40 0.05 266);
-  --ring: oklch(0.72 0.15 250);
-  
+
+  /* Border: Subtle */
+  --border: oklch(0.35 0.04 266);
+  --input: oklch(0.35 0.04 266);
+  --ring: oklch(0.70 0.12 250);
+
   /* Charts - Tokyo Night Palette */
-  --chart-1: oklch(0.69 0.15 250); /* Blue */
-  --chart-2: oklch(0.75 0.15 300); /* Purple */
-  --chart-3: oklch(0.65 0.21 15);  /* Red */
-  --chart-4: oklch(0.75 0.15 160); /* Cyan/Teal */
-  --chart-5: oklch(0.85 0.15 85);  /* Orange */
-  
+  --chart-1: oklch(0.68 0.12 250); /* Blue */
+  --chart-2: oklch(0.70 0.12 300); /* Purple */
+  --chart-3: oklch(0.65 0.18 15);  /* Red */
+  --chart-4: oklch(0.70 0.12 160); /* Cyan/Teal */
+  --chart-5: oklch(0.78 0.12 85);  /* Orange */
+
   /* Sidebar - using slightly darker background */
   --sidebar: oklch(0.17 0.04 266);
-  --sidebar-foreground: oklch(0.85 0.04 250);
-  --sidebar-primary: oklch(0.72 0.15 250);
+  --sidebar-foreground: oklch(0.73 0.03 260);
+  --sidebar-primary: oklch(0.70 0.12 250);
   --sidebar-primary-foreground: oklch(0.19 0.04 266);
   --sidebar-accent: oklch(0.23 0.04 266);
-  --sidebar-accent-foreground: oklch(0.85 0.04 250);
-  --sidebar-border: oklch(0.38 0.05 266);
-  --sidebar-ring: oklch(0.72 0.15 250);
+  --sidebar-accent-foreground: oklch(0.73 0.03 260);
+  --sidebar-border: oklch(0.32 0.04 266);
+  --sidebar-ring: oklch(0.70 0.12 250);
 }
 
 @layer base {
@@ -133,9 +133,9 @@
 /* Prose/Markdown Styling */
 .prose {
   --tw-prose-body: var(--foreground);
-  --tw-prose-headings: #ffffff;
+  --tw-prose-headings: #F2F0EF;
   --tw-prose-links: var(--primary);
-  --tw-prose-bold: #ffffff;
+  --tw-prose-bold: #F2F0EF;
   --tw-prose-counters: var(--muted-foreground);
   --tw-prose-bullets: var(--muted-foreground);
   --tw-prose-hr: var(--border);
@@ -153,11 +153,11 @@
 .prose h3,
 .prose h4,
 .prose h5 {
-  color: #ffffff;
+  color: #F2F0EF;
 }
 
 .prose strong {
-  color: #ffffff;
+  color: #F2F0EF;
 }
 
 .prose h1 {
@@ -184,20 +184,59 @@
   @apply text-sm font-medium mt-2 mb-2 text-muted-foreground leading-snug;
 }
 
+/* Base list styles - match h2 indentation by default */
 .prose ul {
-  @apply list-disc pl-8 my-2;
+  @apply list-disc my-2;
+  padding-left: calc(1rem + 1.5rem); /* ml-4 equivalent + bullet space */
+  margin-left: 0;
 }
 
 .prose ol {
-  @apply list-decimal pl-8 my-2;
+  @apply list-decimal my-2;
+  padding-left: calc(1rem + 1.5rem);
+  margin-left: 0;
 }
 
-/* Nested lists - add indentation */
+/* Lists following h2 - already at ml-4, add list indent */
+.prose h2 + ul,
+.prose h2 + ol,
+.prose h2 + p + ul,
+.prose h2 + p + ol {
+  padding-left: calc(1rem + 1.5rem);
+}
+
+/* Lists following h3 - match ml-8 */
+.prose h3 + ul,
+.prose h3 + ol,
+.prose h3 + p + ul,
+.prose h3 + p + ol {
+  padding-left: calc(2rem + 1.5rem);
+}
+
+/* Lists following h4 - match ml-12 */
+.prose h4 + ul,
+.prose h4 + ol,
+.prose h4 + p + ul,
+.prose h4 + p + ol {
+  padding-left: calc(3rem + 1.5rem);
+}
+
+/* Lists following h5 - match ml-16 */
+.prose h5 + ul,
+.prose h5 + ol,
+.prose h5 + p + ul,
+.prose h5 + p + ol {
+  padding-left: calc(4rem + 1.5rem);
+}
+
+/* Nested lists - add indentation relative to parent */
 .prose ul ul,
 .prose ul ol,
 .prose ol ul,
 .prose ol ol {
-  @apply pl-8 my-1;
+  padding-left: 1.5rem;
+  margin-left: 0;
+  @apply my-1;
 }
 
 /* Deeper nesting levels */
@@ -262,7 +301,88 @@
 }
 
 .prose p {
-  @apply my-2 leading-snug;
+  @apply my-2 leading-relaxed;
+}
+
+/* Paragraphs following headings - indent to match parent heading */
+/* Paragraphs under h2 (ml-4) */
+.prose h2 + p,
+.prose h2 + p + p,
+.prose h2 + p + p + p,
+.prose h2 + p + p + p + p,
+.prose h2 + p + p + p + p + p,
+.prose h2 + p + p + p + p + p + p,
+.prose h2 + p + p + p + p + p + p + p,
+.prose h2 + p + p + p + p + p + p + p + p,
+.prose h2 + p + p + p + p + p + p + p + p + p,
+.prose h2 + p + p + p + p + p + p + p + p + p + p,
+.prose h2 + ul + p,
+.prose h2 + ul + p + p,
+.prose h2 + ul + p + p + p,
+.prose h2 + ol + p,
+.prose h2 + ol + p + p,
+.prose h2 + ol + p + p + p {
+  margin-left: 1rem; /* ml-4 */
+}
+
+/* Paragraphs under h3 (ml-8) */
+.prose h3 + p,
+.prose h3 + p + p,
+.prose h3 + p + p + p,
+.prose h3 + p + p + p + p,
+.prose h3 + p + p + p + p + p,
+.prose h3 + p + p + p + p + p + p,
+.prose h3 + p + p + p + p + p + p + p,
+.prose h3 + p + p + p + p + p + p + p + p,
+.prose h3 + p + p + p + p + p + p + p + p + p,
+.prose h3 + p + p + p + p + p + p + p + p + p + p,
+.prose h3 + ul + p,
+.prose h3 + ul + p + p,
+.prose h3 + ul + p + p + p,
+.prose h3 + ol + p,
+.prose h3 + ol + p + p,
+.prose h3 + ol + p + p + p {
+  margin-left: 2rem; /* ml-8 */
+}
+
+/* Paragraphs under h4 (ml-12) */
+.prose h4 + p,
+.prose h4 + p + p,
+.prose h4 + p + p + p,
+.prose h4 + p + p + p + p,
+.prose h4 + p + p + p + p + p,
+.prose h4 + p + p + p + p + p + p,
+.prose h4 + p + p + p + p + p + p + p,
+.prose h4 + p + p + p + p + p + p + p + p,
+.prose h4 + p + p + p + p + p + p + p + p + p,
+.prose h4 + p + p + p + p + p + p + p + p + p + p,
+.prose h4 + ul + p,
+.prose h4 + ul + p + p,
+.prose h4 + ul + p + p + p,
+.prose h4 + ol + p,
+.prose h4 + ol + p + p,
+.prose h4 + ol + p + p + p {
+  margin-left: 3rem; /* ml-12 */
+}
+
+/* Paragraphs under h5 (ml-16) */
+.prose h5 + p,
+.prose h5 + p + p,
+.prose h5 + p + p + p,
+.prose h5 + p + p + p + p,
+.prose h5 + p + p + p + p + p,
+.prose h5 + p + p + p + p + p + p,
+.prose h5 + p + p + p + p + p + p + p,
+.prose h5 + p + p + p + p + p + p + p + p,
+.prose h5 + p + p + p + p + p + p + p + p + p,
+.prose h5 + p + p + p + p + p + p + p + p + p + p,
+.prose h5 + ul + p,
+.prose h5 + ul + p + p,
+.prose h5 + ul + p + p + p,
+.prose h5 + ol + p,
+.prose h5 + ol + p + p,
+.prose h5 + ol + p + p + p {
+  margin-left: 4rem; /* ml-16 */
 }
 
 /* Tiptap Editor Styles */

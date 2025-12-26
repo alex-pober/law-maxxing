@@ -81,7 +81,22 @@ function MenuBar({ editor }: { editor: ReturnType<typeof useEditor> | null }) {
             return;
         }
 
-        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+        // Validate URL to prevent javascript: and other dangerous protocols
+        try {
+            const parsed = new URL(url, window.location.origin);
+            if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) {
+                alert('Only HTTP, HTTPS, and mailto links are allowed');
+                return;
+            }
+            editor.chain().focus().extendMarkRange('link').setLink({ href: parsed.href }).run();
+        } catch {
+            // If URL parsing fails, check if it's a relative path
+            if (url.startsWith('/') && !url.startsWith('//')) {
+                editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+            } else {
+                alert('Invalid URL');
+            }
+        }
     };
 
     return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const greetings = {
@@ -53,16 +53,16 @@ function formatDate(date: Date): string {
     });
 }
 
-function getInitialGreeting(): string {
-    const now = new Date();
-    const timeOfDay = getTimeOfDay(now.getHours());
+function getRandomGreeting(hour: number): string {
+    const timeOfDay = getTimeOfDay(hour);
     const greetingOptions = greetings[timeOfDay];
     return greetingOptions[Math.floor(Math.random() * greetingOptions.length)];
 }
 
 export function DashboardGreeting() {
-    const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
-    const greeting = useMemo(() => getInitialGreeting(), []);
+    const [currentTime, setCurrentTime] = useState(() => new Date());
+    // Use lazy initializer - runs once on mount, same value for SSR placeholder
+    const [greeting] = useState(() => getRandomGreeting(new Date().getHours()));
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -75,18 +75,21 @@ export function DashboardGreeting() {
     return (
         <div className="space-y-1">
             <div className="flex items-baseline gap-4">
-                <h1 className={cn(
-                    "text-4xl font-bold tracking-tight",
-                    "bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent"
-                )}>
+                <h1
+                    suppressHydrationWarning
+                    className={cn(
+                        "text-4xl font-bold tracking-tight",
+                        "bg-linear-to-r from-white via-white to-white/70 bg-clip-text text-transparent"
+                    )}
+                >
                     {formatTime(currentTime)}
                 </h1>
-                <span className="text-muted-foreground/70 text-sm font-medium">
+                <span suppressHydrationWarning className="text-muted-foreground/70 text-sm font-medium">
                     {formatDate(currentTime)}
                 </span>
             </div>
 
-            <p className="text-lg text-muted-foreground/80 font-light">
+            <p suppressHydrationWarning className="text-lg text-muted-foreground/80 font-light">
                 {greeting}
             </p>
         </div>

@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { FolderItem } from './FolderItem'
 import { FileItem } from './FileItem'
-import { createFolder, reorderItems, moveNote } from '@/app/actions'
-import { CreateNoteDialog } from '@/components/CreateNoteDialog'
+import { VttConvertDialog } from './VttConvertDialog'
+import { createFolder, createNoteInline, reorderItems, moveNote, getNotesForDownload } from '@/app/actions'
+import JSZip from 'jszip'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
-import { Ellipsis, FilePlus, FolderPlus, FileText, Folder } from 'lucide-react'
+import { Ellipsis, FilePlus, FolderPlus, FileText, Folder, CheckSquare, Download, X, FileAudio } from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -53,13 +55,19 @@ interface FileExplorerProps {
 }
 
 export function FileExplorer({ folders, notes }: FileExplorerProps) {
+    const router = useRouter()
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
     const [isCreatingFolder, setIsCreatingFolder] = useState(false)
     const [newFolderName, setNewFolderName] = useState('')
+    const [isCreatingNote, setIsCreatingNote] = useState(false)
+    const [newNoteTitle, setNewNoteTitle] = useState('')
     const [activeId, setActiveId] = useState<string | null>(null)
     const [isMounted, setIsMounted] = useState(false)
     const [isOverRootZone, setIsOverRootZone] = useState(false)
     const rootDropRef = useRef<HTMLDivElement>(null)
+    const [isSelectMode, setIsSelectMode] = useState(false)
+    const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set())
+    const [isVttDialogOpen, setIsVttDialogOpen] = useState(false)
 
     const [optimisticFolders, setOptimisticFolders] = useState<Folder[]>(folders)
     const [optimisticNotes, setOptimisticNotes] = useState<Note[]>(notes)
@@ -115,6 +123,94 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
             setNewFolderName('')
             setIsCreatingFolder(false)
         }
+    }
+
+    const handleCreateNote = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (newNoteTitle.trim()) {
+            const noteId = await createNoteInline(newNoteTitle, selectedFolderId)
+            setNewNoteTitle('')
+            setIsCreatingNote(false)
+            router.push(`/notes/${noteId}`)
+        }
+    }
+
+    const handleToggleSelectMode = () => {
+        if (isSelectMode) {
+            setSelectedNoteIds(new Set())
+        }
+        setIsSelectMode(!isSelectMode)
+    }
+
+    const handleToggleNoteSelection = (noteId: string) => {
+        setSelectedNoteIds(prev => {
+            const next = new Set(prev)
+            if (next.has(noteId)) {
+                next.delete(noteId)
+            } else {
+                next.add(noteId)
+            }
+            return next
+        })
+    }
+
+    const handleDownloadSelected = async () => {
+        if (selectedNoteIds.size === 0) return
+
+        const notesData = await getNotesForDownload(Array.from(selectedNoteIds))
+
+        // Helper to build markdown content for a single note
+        const buildNoteMarkdown = (note: { title: string; description: string | null; content_markdown: string | null }) => {
+            let content = `# ${note.title}\n\n`
+            if (note.description) {
+                content += `> ${note.description}\n\n`
+            }
+            content += '---\n\n'
+            content += note.content_markdown || ''
+            return content
+        }
+
+        // Helper to sanitize filename
+        const sanitizeFilename = (name: string) => {
+            return name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100)
+        }
+
+        if (notesData.length === 1) {
+            // Single note: download directly as .md
+            const note = notesData[0]
+            const content = buildNoteMarkdown(note)
+            const blob = new Blob([content], { type: 'text/markdown' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${sanitizeFilename(note.title)}.md`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+        } else {
+            // Multiple notes: create a zip file
+            const zip = new JSZip()
+
+            notesData.forEach(note => {
+                const content = buildNoteMarkdown(note)
+                zip.file(`${sanitizeFilename(note.title)}.md`, content)
+            })
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' })
+            const url = URL.createObjectURL(zipBlob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `notes-${new Date().toISOString().split('T')[0]}.zip`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+        }
+
+        // Exit select mode after download
+        setIsSelectMode(false)
+        setSelectedNoteIds(new Set())
     }
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -290,38 +386,20 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     // Check if currently dragging a note that's inside a folder
     const isDraggingFromFolder = activeNote && activeNote.folder_id !== null
 
-    // Get selected folder name for display
-    const selectedFolder = selectedFolderId ? folders.find(f => f.id === selectedFolderId) : null
-
     const content = (
         <div className="flex flex-col h-full bg-sidebar select-none overflow-hidden m-1 mt-3">
             <div className="flex justify-between gap-0.5">
                 <div className='flex ml-2 items-center gap-1.5'>
                     <span>Notes</span>
-                    {selectedFolder && (
-                        <button
-                            onClick={() => setSelectedFolderId(null)}
-                            className="text-xs text-muted-foreground truncate max-w-[100px] hover:text-foreground flex items-center gap-0.5"
-                            title="Click to deselect folder"
-                        >
-                            <span>→ {selectedFolder.name}</span>
-                            <span className="text-[10px] opacity-60">✕</span>
-                        </button>
-                    )}
                 </div>
                 <div>
-                    <CreateNoteDialog
-                        variant="icon"
-                        folderId={selectedFolderId}
-                        trigger={
-                            <button
-                                className="p-1 hover:bg-accent rounded"
-                                title={selectedFolder ? `New note in ${selectedFolder.name}` : "New note in root"}
-                            >
-                                <FilePlus className="h-4 w-4" />
-                            </button>
-                        }
-                    />
+                    <button
+                        className="p-1 hover:bg-accent rounded"
+                        title="New note"
+                        onClick={() => setIsCreatingNote(true)}
+                    >
+                        <FilePlus className="h-4 w-4" />
+                    </button>
                     <button
                         className="p-1 hover:bg-accent rounded"
                         title="New Folder"
@@ -340,13 +418,71 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                                 <FolderPlus className="h-4 w-4 mr-2" />
                                 New Folder
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsVttDialogOpen(true)}>
+                                <FileAudio className="h-4 w-4 mr-2" />
+                                Import VTT Transcript
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleToggleSelectMode}>
+                                <CheckSquare className="h-4 w-4 mr-2" />
+                                Select
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {isSelectMode && (
+                <div className="flex items-center justify-between px-2 py-1.5 bg-primary/10 border-b border-border/50">
+                    <span className="text-xs text-muted-foreground">
+                        {selectedNoteIds.size} selected
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={handleDownloadSelected}
+                            disabled={selectedNoteIds.size === 0}
+                            className="p-1 hover:bg-accent rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Download as Markdown"
+                        >
+                            <Download className="h-4 w-4" />
+                        </button>
+                        <button
+                            onClick={handleToggleSelectMode}
+                            className="p-1 hover:bg-accent rounded"
+                            title="Cancel Selection"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div
+                className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll"
+                onClick={(e) => {
+                    // Deselect folder when clicking on empty space
+                    if (e.target === e.currentTarget) {
+                        setSelectedFolderId(null)
+                    }
+                }}
+            >
                 <div className="py-0.5">
+                    {isCreatingNote && (
+                        <form onSubmit={handleCreateNote} className="px-2 py-0.5">
+                            <Input
+                                autoFocus
+                                value={newNoteTitle}
+                                onChange={(e) => setNewNoteTitle(e.target.value)}
+                                placeholder="Note title..."
+                                className="h-[22px] text-[13px] rounded-none border-primary bg-background"
+                                onBlur={() => {
+                                    if (!newNoteTitle.trim()) setIsCreatingNote(false)
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Escape') setIsCreatingNote(false)
+                                }}
+                            />
+                        </form>
+                    )}
                     {isCreatingFolder && (
                         <form onSubmit={handleCreateFolder} className="px-2 py-0.5">
                             <Input
@@ -375,10 +511,20 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                                     isMounted={isMounted}
                                     selectedFolderId={selectedFolderId}
                                     onSelect={setSelectedFolderId}
+                                    isSelectMode={isSelectMode}
+                                    selectedNoteIds={selectedNoteIds}
+                                    onToggleNoteSelection={handleToggleNoteSelection}
                                 />
                             ))}
                             {rootNotes.map(note => (
-                                <FileItem key={note.id} note={note} isMounted={isMounted} />
+                                <FileItem
+                                    key={note.id}
+                                    note={note}
+                                    isMounted={isMounted}
+                                    isSelectMode={isSelectMode}
+                                    isSelected={selectedNoteIds.has(note.id)}
+                                    onToggleSelection={handleToggleNoteSelection}
+                                />
                             ))}
                         </SortableContext>
                     ) : (
@@ -392,10 +538,20 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                                     isMounted={isMounted}
                                     selectedFolderId={selectedFolderId}
                                     onSelect={setSelectedFolderId}
+                                    isSelectMode={isSelectMode}
+                                    selectedNoteIds={selectedNoteIds}
+                                    onToggleNoteSelection={handleToggleNoteSelection}
                                 />
                             ))}
                             {rootNotes.map(note => (
-                                <FileItem key={note.id} note={note} isMounted={isMounted} />
+                                <FileItem
+                                    key={note.id}
+                                    note={note}
+                                    isMounted={isMounted}
+                                    isSelectMode={isSelectMode}
+                                    isSelected={selectedNoteIds.has(note.id)}
+                                    onToggleSelection={handleToggleNoteSelection}
+                                />
                             ))}
                         </>
                     )}
@@ -446,6 +602,12 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                     </div>
                 ) : null}
             </DragOverlay>
+
+            <VttConvertDialog
+                open={isVttDialogOpen}
+                onOpenChange={setIsVttDialogOpen}
+                targetFolderId={selectedFolderId}
+            />
         </DndContext>
     )
 }

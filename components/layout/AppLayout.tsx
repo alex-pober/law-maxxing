@@ -1,5 +1,4 @@
 'use client';
-
 import { SidebarLeft } from './SidebarLeft';
 import { SidebarRight } from './SidebarRight';
 import {
