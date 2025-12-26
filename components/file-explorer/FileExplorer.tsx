@@ -223,9 +223,6 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
         if (rootDropRef.current) {
             const dropZoneRect = rootDropRef.current.getBoundingClientRect()
 
-            // Get the dragged item's current position from the collision rect
-            const activeRect = event.collisions?.[0]?.data?.droppableContainer?.rect?.current
-
             // Also try using activatorEvent + delta as fallback
             const activatorEvent = event.activatorEvent as PointerEvent
             const currentX = activatorEvent?.clientX + (event.delta?.x || 0)

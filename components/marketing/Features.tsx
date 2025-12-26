@@ -78,7 +78,7 @@ export function Features() {
         <section id="features" className="py-24 bg-[#16161e] relative overflow-hidden">
             {/* Background glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-20 pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#7aa2f7] to-[#bb9af7] blur-[120px] rounded-full" />
+                <div className="absolute inset-0 bg-linear-to-r from-[#7aa2f7] to-[#bb9af7] blur-[120px] rounded-full" />
             </div>
 
             <div className="container px-4 md:px-6 relative z-10 mx-auto">
@@ -89,7 +89,7 @@ export function Features() {
                         VTT Transcript Import
                     </div>
                     <h2 className="text-3xl md:text-5xl font-bold text-white">
-                        Zoom Lectures → <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7aa2f7] to-[#bb9af7]">Study Notes</span>
+                        Zoom Lectures → <span className="text-transparent bg-clip-text bg-linear-to-r from-[#7aa2f7] to-[#bb9af7]">Study Notes</span>
                     </h2>
                     <p className="text-[#a9b1d6] text-lg">
                         Turn hours of recorded lectures into organized, exam-ready notes in seconds.

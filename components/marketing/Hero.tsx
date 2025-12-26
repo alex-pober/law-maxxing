@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Star, FileText, Folder, Settings, MoreHorizontal, Star as StarIcon, Globe } from "lucide-react";
+import { ArrowRight, FileText, Folder, Settings, MoreHorizontal, Star as StarIcon, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -46,7 +46,7 @@ export function Hero() {
     return (
         <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-30 pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#7aa2f7] to-[#bb9af7] blur-[100px] rounded-full mix-blend-screen" />
+                <div className="absolute inset-0 bg-linear-to-r from-[#7aa2f7] to-[#bb9af7] blur-[100px] rounded-full mix-blend-screen" />
             </div>
 
             <div className="container px-4 md:px-6 relative z-10 mx-auto">
@@ -58,7 +58,7 @@ export function Hero() {
 
                     <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white max-w-4xl">
                         Law School Notes, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7aa2f7] to-[#bb9af7]">
+                        <span className="text-transparent bg-clip-text bg-linear-to-r from-[#7aa2f7] to-[#bb9af7]">
                             Mastered.
                         </span>
                     </h1>
@@ -84,7 +84,7 @@ export function Hero() {
                 {/* App Mockup */}
                 <div className="relative mx-auto max-w-7xl transform md:perspective-1000">
                     <div className="relative md:rotate-x-6 transition-transform duration-700 hover:rotate-x-0">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-[#7aa2f7] to-[#bb9af7] rounded-xl blur opacity-20"></div>
+                        <div className="absolute -inset-1 bg-linear-to-r from-[#7aa2f7] to-[#bb9af7] rounded-xl blur opacity-20"></div>
 
                         {/* Library Tooltip Overlay - bottom left of mockup */}
                         <div

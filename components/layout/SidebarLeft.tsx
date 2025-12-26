@@ -5,9 +5,23 @@ import { Compass } from 'lucide-react';
 import { FileExplorer } from '@/components/file-explorer/FileExplorer';
 import { UserCard } from '@/components/file-explorer/UserCard';
 
+interface Note {
+    id: string;
+    title: string;
+    folder_id: string | null;
+    position: number;
+}
+
+interface Folder {
+    id: string;
+    name: string;
+    parent_id: string | null;
+    position: number;
+}
+
 interface SidebarLeftProps {
-    folders: any[];
-    notes: any[];
+    folders: Folder[];
+    notes: Note[];
     userEmail?: string;
 }
 

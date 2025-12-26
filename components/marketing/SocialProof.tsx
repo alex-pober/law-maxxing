@@ -72,7 +72,7 @@ export function SocialProof() {
         <section className="py-24 bg-[#1a1b26] border-t border-white/5 relative overflow-hidden">
             {/* Background Elements */}
             <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-bl from-[#9ece6a] to-transparent blur-[100px] rounded-full" />
+                <div className="absolute inset-0 bg-linear-to-bl from-[#9ece6a] to-transparent blur-[100px] rounded-full" />
             </div>
 
             <div className="container px-4 md:px-6 mx-auto relative z-10">
@@ -83,7 +83,7 @@ export function SocialProof() {
                         Community Library
                     </div>
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                        Share & Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9ece6a] to-[#7aa2f7]">Together</span>
+                        Share & Discover <span className="text-transparent bg-clip-text bg-linear-to-r from-[#9ece6a] to-[#7aa2f7]">Together</span>
                     </h2>
                     <p className="text-[#a9b1d6] text-lg">
                         Make your notes public to help others, or explore thousands of outlines from students at top law schools.
@@ -316,7 +316,7 @@ export function SocialProof() {
                                             .map((note) => (
                                                 <div
                                                     key={note.id}
-                                                    className="p-4 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/5 hover:border-[#7aa2f7]/30 transition-all cursor-pointer group"
+                                                    className="p-4 rounded-lg border border-white/10 bg-white/2 hover:bg-white/5 hover:border-[#7aa2f7]/30 transition-all cursor-pointer group"
                                                 >
                                                     <div className="flex items-start gap-3 mb-3">
                                                         <div className="p-2 rounded-md bg-[#7aa2f7]/10 text-[#7aa2f7] shrink-0">

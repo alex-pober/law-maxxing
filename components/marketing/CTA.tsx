@@ -106,7 +106,7 @@ export function CTA() {
                         Export to Markdown
                     </div>
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                        Your Notes, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7aa2f7] to-[#bb9af7]">AI-Ready</span>
+                        Your Notes, <span className="text-transparent bg-clip-text bg-linear-to-r from-[#7aa2f7] to-[#bb9af7]">AI-Ready</span>
                     </h2>
                     <p className="text-[#a9b1d6] text-lg">
                         Download your notes as Markdown files — the universal format that LLMs understand best.
@@ -139,7 +139,7 @@ export function CTA() {
                                         "w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left",
                                         selectedNotes.has(note.id)
                                             ? "bg-[#7aa2f7]/10 border border-[#7aa2f7]/30"
-                                            : "bg-white/[0.02] border border-white/5 hover:bg-white/5"
+                                            : "bg-white/2 border border-white/5 hover:bg-white/5"
                                     )}
                                 >
                                     <div className={cn(
@@ -222,7 +222,7 @@ export function CTA() {
                         </div>
 
                         {/* Markdown Content */}
-                        <div className="p-4 font-mono text-xs text-[#a9b1d6] leading-relaxed max-h-[320px] overflow-y-auto">
+                        <div className="p-4 font-mono text-xs text-[#a9b1d6] leading-relaxed max-h-80 overflow-y-auto">
                             <pre className="whitespace-pre-wrap">{markdownPreview}</pre>
                         </div>
 
