@@ -166,11 +166,11 @@ export function Features() {
                         {/* Content Area */}
                         <div className="p-6 md:p-8 min-h-[400px]">
                             {activeStep === 0 && (
-                                <div className="space-y-6">
+                                <div className="grid md:grid-cols-2 gap-6">
                                     {/* Upload Zone */}
-                                    <div className="border-2 border-dashed border-[#7aa2f7]/40 rounded-xl p-8 text-center bg-[#7aa2f7]/5 hover:bg-[#7aa2f7]/10 transition-colors cursor-pointer">
-                                        <div className="w-16 h-16 rounded-full bg-[#7aa2f7]/20 flex items-center justify-center mx-auto mb-4">
-                                            <Upload className="w-8 h-8 text-[#7aa2f7]" />
+                                    <div className="border-2 border-dashed border-[#7aa2f7]/40 rounded-xl p-6 text-center bg-[#7aa2f7]/5 hover:bg-[#7aa2f7]/10 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[280px]">
+                                        <div className="w-14 h-14 rounded-full bg-[#7aa2f7]/20 flex items-center justify-center mb-4">
+                                            <Upload className="w-7 h-7 text-[#7aa2f7]" />
                                         </div>
                                         <p className="text-white font-medium mb-2">Drop your .vtt file here</p>
                                         <p className="text-[#565f89] text-sm">or click to browse</p>
@@ -183,7 +183,7 @@ export function Features() {
                                             <span>contracts_lecture_12.vtt</span>
                                             <span className="text-[#565f89]">• 45.2 KB</span>
                                         </div>
-                                        <div className="bg-[#16161e] rounded-lg p-4 font-mono text-xs text-[#a9b1d6] max-h-[180px] overflow-y-auto">
+                                        <div className="bg-[#16161e] rounded-lg p-4 font-mono text-xs text-[#a9b1d6] h-[250px] overflow-y-auto">
                                             <pre className="whitespace-pre-wrap">{vttPreview}</pre>
                                         </div>
                                     </div>

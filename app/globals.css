@@ -184,49 +184,18 @@
   @apply text-sm font-medium mt-2 mb-2 text-muted-foreground leading-snug;
 }
 
-/* Base list styles - match h2 indentation by default */
+/* Base list styles - padding is for bullet/number space only.
+   Heading-level indentation is handled via margin-left in the general sibling rules below */
 .prose ul {
   @apply list-disc my-2;
-  padding-left: calc(1rem + 1.5rem); /* ml-4 equivalent + bullet space */
+  padding-left: 1.5rem; /* bullet space only */
   margin-left: 0;
 }
 
 .prose ol {
   @apply list-decimal my-2;
-  padding-left: calc(1rem + 1.5rem);
+  padding-left: 1.5rem; /* number space only */
   margin-left: 0;
-}
-
-/* Lists following h2 - already at ml-4, add list indent */
-.prose h2 + ul,
-.prose h2 + ol,
-.prose h2 + p + ul,
-.prose h2 + p + ol {
-  padding-left: calc(1rem + 1.5rem);
-}
-
-/* Lists following h3 - match ml-8 */
-.prose h3 + ul,
-.prose h3 + ol,
-.prose h3 + p + ul,
-.prose h3 + p + ol {
-  padding-left: calc(2rem + 1.5rem);
-}
-
-/* Lists following h4 - match ml-12 */
-.prose h4 + ul,
-.prose h4 + ol,
-.prose h4 + p + ul,
-.prose h4 + p + ol {
-  padding-left: calc(3rem + 1.5rem);
-}
-
-/* Lists following h5 - match ml-16 */
-.prose h5 + ul,
-.prose h5 + ol,
-.prose h5 + p + ul,
-.prose h5 + p + ol {
-  padding-left: calc(4rem + 1.5rem);
 }
 
 /* Nested lists - add indentation relative to parent */
@@ -304,85 +273,52 @@
   @apply my-2 leading-relaxed;
 }
 
-/* Paragraphs following headings - indent to match parent heading */
-/* Paragraphs under h2 (ml-4) */
-.prose h2 + p,
-.prose h2 + p + p,
-.prose h2 + p + p + p,
-.prose h2 + p + p + p + p,
-.prose h2 + p + p + p + p + p,
-.prose h2 + p + p + p + p + p + p,
-.prose h2 + p + p + p + p + p + p + p,
-.prose h2 + p + p + p + p + p + p + p + p,
-.prose h2 + p + p + p + p + p + p + p + p + p,
-.prose h2 + p + p + p + p + p + p + p + p + p + p,
-.prose h2 + ul + p,
-.prose h2 + ul + p + p,
-.prose h2 + ul + p + p + p,
-.prose h2 + ol + p,
-.prose h2 + ol + p + p,
-.prose h2 + ol + p + p + p {
-  margin-left: 1rem; /* ml-4 */
+/* Paragraphs/lists following headings - indent to match parent heading level.
+   Uses general sibling selector (~) to match ANY content after a heading.
+
+   Order matters: rules declared LATER in CSS win when specificity is equal.
+   So h1 must be first (reset), then h2 → h3 → h4 → h5.
+
+   LIMITATION: CSS cannot determine the "nearest preceding heading" - it only
+   knows that SOME heading exists before the content. This works correctly when
+   headings follow logical hierarchy (h1 → h2 → h3). However, if you jump back
+   up (h3 then h2), content after the h2 will still match h3 ~ p (declared later),
+   giving incorrect indentation. For such documents, JavaScript-based class
+   assignment would be needed. */
+
+/* Reset: content after h1 gets no indentation (declared first, lowest priority) */
+.prose h1 ~ p,
+.prose h1 ~ ul,
+.prose h1 ~ ol {
+  margin-left: 0;
 }
 
-/* Paragraphs under h3 (ml-8) */
-.prose h3 + p,
-.prose h3 + p + p,
-.prose h3 + p + p + p,
-.prose h3 + p + p + p + p,
-.prose h3 + p + p + p + p + p,
-.prose h3 + p + p + p + p + p + p,
-.prose h3 + p + p + p + p + p + p + p,
-.prose h3 + p + p + p + p + p + p + p + p,
-.prose h3 + p + p + p + p + p + p + p + p + p,
-.prose h3 + p + p + p + p + p + p + p + p + p + p,
-.prose h3 + ul + p,
-.prose h3 + ul + p + p,
-.prose h3 + ul + p + p + p,
-.prose h3 + ol + p,
-.prose h3 + ol + p + p,
-.prose h3 + ol + p + p + p {
-  margin-left: 2rem; /* ml-8 */
+/* Content after h2 gets ml-4 */
+.prose h2 ~ p,
+.prose h2 ~ ul,
+.prose h2 ~ ol {
+  margin-left: 1rem;
 }
 
-/* Paragraphs under h4 (ml-12) */
-.prose h4 + p,
-.prose h4 + p + p,
-.prose h4 + p + p + p,
-.prose h4 + p + p + p + p,
-.prose h4 + p + p + p + p + p,
-.prose h4 + p + p + p + p + p + p,
-.prose h4 + p + p + p + p + p + p + p,
-.prose h4 + p + p + p + p + p + p + p + p,
-.prose h4 + p + p + p + p + p + p + p + p + p,
-.prose h4 + p + p + p + p + p + p + p + p + p + p,
-.prose h4 + ul + p,
-.prose h4 + ul + p + p,
-.prose h4 + ul + p + p + p,
-.prose h4 + ol + p,
-.prose h4 + ol + p + p,
-.prose h4 + ol + p + p + p {
-  margin-left: 3rem; /* ml-12 */
+/* Content after h3 gets ml-8 (overrides h2 if h3 comes later in document) */
+.prose h3 ~ p,
+.prose h3 ~ ul,
+.prose h3 ~ ol {
+  margin-left: 2rem;
 }
 
-/* Paragraphs under h5 (ml-16) */
-.prose h5 + p,
-.prose h5 + p + p,
-.prose h5 + p + p + p,
-.prose h5 + p + p + p + p,
-.prose h5 + p + p + p + p + p,
-.prose h5 + p + p + p + p + p + p,
-.prose h5 + p + p + p + p + p + p + p,
-.prose h5 + p + p + p + p + p + p + p + p,
-.prose h5 + p + p + p + p + p + p + p + p + p,
-.prose h5 + p + p + p + p + p + p + p + p + p + p,
-.prose h5 + ul + p,
-.prose h5 + ul + p + p,
-.prose h5 + ul + p + p + p,
-.prose h5 + ol + p,
-.prose h5 + ol + p + p,
-.prose h5 + ol + p + p + p {
-  margin-left: 4rem; /* ml-16 */
+/* Content after h4 gets ml-12 */
+.prose h4 ~ p,
+.prose h4 ~ ul,
+.prose h4 ~ ol {
+  margin-left: 3rem;
+}
+
+/* Content after h5 gets ml-16 (highest priority, declared last) */
+.prose h5 ~ p,
+.prose h5 ~ ul,
+.prose h5 ~ ol {
+  margin-left: 4rem;
 }
 
 /* Tiptap Editor Styles */
