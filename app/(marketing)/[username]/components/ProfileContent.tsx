@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FilterSidebar } from './FilterSidebar'
-import { NoteCard } from './NoteCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,8 +14,6 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import {
-    LayoutGrid,
-    List,
     Search,
     FileText,
     Folder,
@@ -25,7 +22,6 @@ import {
     Filter,
     X,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
 interface Note {
@@ -86,14 +82,12 @@ export function ProfileContent({
     const searchParams = useSearchParams()
 
     // Parse URL params
-    const initialView = (searchParams.get('view') as 'grid' | 'list') || 'grid'
     const initialFolder = searchParams.get('folder')
     const initialClasses = searchParams.get('classes')?.split(',').filter(Boolean) || []
     const initialTeachers = searchParams.get('teachers')?.split(',').filter(Boolean) || []
     const initialSearch = searchParams.get('q') || ''
     const initialPage = parseInt(searchParams.get('page') || '1', 10)
 
-    const [view, setView] = useState<'grid' | 'list'>(initialView)
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(initialFolder)
     const [selectedClasses, setSelectedClasses] = useState<string[]>(initialClasses)
     const [selectedTeachers, setSelectedTeachers] = useState<string[]>(initialTeachers)
@@ -196,11 +190,6 @@ export function ProfileContent({
 
         const queryString = params.toString()
         router.push(`/${username}${queryString ? `?${queryString}` : ''}`, { scroll: false })
-    }
-
-    const handleViewChange = (newView: 'grid' | 'list') => {
-        setView(newView)
-        updateUrl({ view: newView })
     }
 
     const handleFolderChange = (folderId: string | null) => {
@@ -337,36 +326,8 @@ export function ProfileContent({
                         />
                     </div>
 
-                    {/* View Toggle */}
-                    <div className="flex items-center rounded-lg border border-white/10 p-1">
-                        <button
-                            onClick={() => handleViewChange('grid')}
-                            className={cn(
-                                "p-1.5 rounded transition-colors",
-                                view === 'grid'
-                                    ? "bg-[#7aa2f7] text-white"
-                                    : "text-[#a9b1d6] hover:text-white"
-                            )}
-                            title="Grid view"
-                        >
-                            <LayoutGrid className="h-4 w-4" />
-                        </button>
-                        <button
-                            onClick={() => handleViewChange('list')}
-                            className={cn(
-                                "p-1.5 rounded transition-colors",
-                                view === 'list'
-                                    ? "bg-[#7aa2f7] text-white"
-                                    : "text-[#a9b1d6] hover:text-white"
-                            )}
-                            title="List view"
-                        >
-                            <List className="h-4 w-4" />
-                        </button>
-                    </div>
-
                     {/* Results count */}
-                    <span className="text-sm text-[#565f89]">
+                    <span className="text-sm text-[#565f89] ml-auto">
                         {filteredNotes.length} {filteredNotes.length === 1 ? 'note' : 'notes'}
                     </span>
                 </div>
@@ -375,75 +336,63 @@ export function ProfileContent({
                 <div className="flex-1 overflow-auto p-4">
                     {paginatedNotes.length > 0 ? (
                         <>
-                            {view === 'grid' ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    {paginatedNotes.map(note => (
-                                        <NoteCard
-                                            key={note.id}
-                                            note={note}
-                                            folderPath={buildFolderPath(note.folder_id, folders)}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="rounded-lg border border-white/10 overflow-hidden">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="border-white/10 hover:bg-transparent">
-                                                <TableHead className="text-[#a9b1d6]">Title</TableHead>
-                                                <TableHead className="text-[#a9b1d6] hidden md:table-cell">Folder</TableHead>
-                                                <TableHead className="text-[#a9b1d6] hidden lg:table-cell">Class</TableHead>
-                                                <TableHead className="text-[#a9b1d6] hidden lg:table-cell">Teacher</TableHead>
-                                                <TableHead className="text-[#a9b1d6] hidden sm:table-cell">Updated</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {paginatedNotes.map(note => {
-                                                const folderPath = buildFolderPath(note.folder_id, folders)
-                                                return (
-                                                    <TableRow key={note.id} className="border-white/10 hover:bg-white/5">
-                                                        <TableCell>
-                                                            <Link
-                                                                href={`/explore/${note.id}`}
-                                                                className="flex items-center gap-3 text-white hover:text-[#7aa2f7] transition-colors"
-                                                            >
-                                                                <FileText className="h-4 w-4 text-[#a9b1d6] shrink-0" />
-                                                                <div className="min-w-0">
-                                                                    <div className="font-medium truncate">{note.title}</div>
-                                                                    {note.description && (
-                                                                        <div className="text-sm text-[#a9b1d6] truncate">
-                                                                            {note.description}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </Link>
-                                                        </TableCell>
-                                                        <TableCell className="hidden md:table-cell text-[#a9b1d6]">
-                                                            {folderPath ? (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <Folder className="h-3.5 w-3.5 text-[#7aa2f7] shrink-0" />
-                                                                    <span className="truncate max-w-[200px]">{folderPath}</span>
-                                                                </div>
-                                                            ) : (
-                                                                "—"
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="hidden lg:table-cell text-[#a9b1d6]">
-                                                            {note.class_name || "—"}
-                                                        </TableCell>
-                                                        <TableCell className="hidden lg:table-cell text-[#a9b1d6]">
-                                                            {note.teacher_name || "—"}
-                                                        </TableCell>
-                                                        <TableCell className="hidden sm:table-cell text-[#a9b1d6] whitespace-nowrap">
-                                                            {formatDate(note.updated_at)}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
+                            <div className="rounded-lg border border-white/10 overflow-hidden">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-white/10 hover:bg-transparent">
+                                            <TableHead className="text-[#a9b1d6]">Title</TableHead>
+                                            <TableHead className="text-[#a9b1d6] hidden md:table-cell">Folder</TableHead>
+                                            <TableHead className="text-[#a9b1d6] hidden lg:table-cell">Class</TableHead>
+                                            <TableHead className="text-[#a9b1d6] hidden xl:table-cell">Teacher</TableHead>
+                                            <TableHead className="text-[#a9b1d6] hidden sm:table-cell text-right">Updated</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paginatedNotes.map(note => {
+                                            const folderPath = buildFolderPath(note.folder_id, folders)
+                                            return (
+                                                <TableRow key={note.id} className="border-white/10 hover:bg-white/5">
+                                                    <TableCell>
+                                                        <Link
+                                                            href={`/explore/${note.id}`}
+                                                            className="flex items-center gap-3 text-white hover:text-[#7aa2f7] transition-colors"
+                                                        >
+                                                            <FileText className="h-4 w-4 text-[#a9b1d6] shrink-0" />
+                                                            <div className="min-w-0">
+                                                                <div className="font-medium truncate">{note.title}</div>
+                                                                {note.description && (
+                                                                    <div className="text-sm text-[#a9b1d6] truncate max-w-[300px]">
+                                                                        {note.description}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell className="hidden md:table-cell text-[#a9b1d6]">
+                                                        {folderPath ? (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <Folder className="h-3.5 w-3.5 text-[#bb9af7] shrink-0" />
+                                                                <span className="truncate max-w-[180px] text-sm">{folderPath}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[#565f89]">—</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="hidden lg:table-cell text-[#a9b1d6]">
+                                                        {note.class_name || <span className="text-[#565f89]">—</span>}
+                                                    </TableCell>
+                                                    <TableCell className="hidden xl:table-cell text-[#a9b1d6]">
+                                                        {note.teacher_name || <span className="text-[#565f89]">—</span>}
+                                                    </TableCell>
+                                                    <TableCell className="hidden sm:table-cell text-[#a9b1d6] whitespace-nowrap text-right">
+                                                        {formatDate(note.updated_at)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
 
                             {/* Pagination */}
                             {totalPages > 1 && (

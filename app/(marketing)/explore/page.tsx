@@ -7,7 +7,6 @@ interface SearchParams {
     schools?: string;
     classes?: string;
     teachers?: string;
-    view?: string;
 }
 
 export default async function ExplorePage({
@@ -23,7 +22,6 @@ export default async function ExplorePage({
     const schools = params.schools?.split(",").filter(Boolean) || [];
     const classes = params.classes?.split(",").filter(Boolean) || [];
     const teachers = params.teachers?.split(",").filter(Boolean) || [];
-    const view = (params.view as "grid" | "list") || "grid";
 
     // Fetch filter options and notes in parallel
     const [filterOptions, notesResult] = await Promise.all([
@@ -63,7 +61,6 @@ export default async function ExplorePage({
                         schools,
                         classes,
                         teachers,
-                        view,
                     }}
                 />
             </div>

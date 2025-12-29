@@ -799,6 +799,7 @@ export interface ExploreNote {
     created_at: string
     updated_at: string
     user_id: string
+    folder_path: string | null
     profiles: {
         username: string | null
         display_name: string | null
@@ -830,7 +831,8 @@ export async function getExploreNotes(params: ExploreNotesParams): Promise<Explo
             teacher_name,
             created_at,
             updated_at,
-            user_id
+            user_id,
+            folder_id
         `)
         .eq('is_public', true)
         .order('updated_at', { ascending: false })
@@ -875,53 +877,75 @@ export async function getExploreNotes(params: ExploreNotesParams): Promise<Explo
     const notesData = notesResult.data || []
     let totalCount = countResult.count || 0
 
-    // Fetch profiles for the notes
+    // Fetch profiles and folders for the notes
     let notesWithProfiles: ExploreNote[] = []
 
     if (notesData.length > 0) {
         const userIds = [...new Set(notesData.map(n => n.user_id).filter(Boolean))]
+        const folderIds = [...new Set(notesData.map(n => n.folder_id).filter(Boolean))]
 
-        if (userIds.length > 0) {
-            let profilesQuery = supabase
-                .from('profiles')
-                .select('id, username, display_name, avatar_url, school')
-                .in('id', userIds)
+        // Fetch profiles
+        let profilesQuery = supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url, school')
+            .in('id', userIds)
 
-            // If school filter is applied, filter profiles
-            if (schools && schools.length > 0) {
-                profilesQuery = profilesQuery.in('school', schools)
+        // If school filter is applied, filter profiles
+        if (schools && schools.length > 0) {
+            profilesQuery = profilesQuery.in('school', schools)
+        }
+
+        // Fetch folders
+        const foldersPromise = folderIds.length > 0
+            ? supabase.from('folders').select('id, name, parent_id, user_id').or(`id.in.(${folderIds.join(',')}),user_id.in.(${userIds.join(',')})`)
+            : Promise.resolve({ data: [] })
+
+        const [{ data: profiles }, { data: folders }] = await Promise.all([profilesQuery, foldersPromise])
+
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+        const folderMap = new Map(folders?.map(f => [f.id, f]) || [])
+
+        // Build folder path helper
+        const buildFolderPath = (folderId: string | null): string | null => {
+            if (!folderId) return null
+            const pathParts: string[] = []
+            let currentId: string | null = folderId
+            const visited = new Set<string>()
+            while (currentId && !visited.has(currentId)) {
+                visited.add(currentId)
+                const folder = folderMap.get(currentId)
+                if (folder) {
+                    pathParts.unshift(folder.name)
+                    currentId = folder.parent_id
+                } else {
+                    break
+                }
             }
+            return pathParts.length > 0 ? pathParts.join(' / ') : null
+        }
 
-            const { data: profiles } = await profilesQuery
+        // Filter notes to only include those from matching profiles (if school filter applied)
+        notesWithProfiles = notesData
+            .map(note => ({
+                ...note,
+                folder_path: buildFolderPath(note.folder_id),
+                profiles: note.user_id ? profileMap.get(note.user_id) || null : null
+            }))
+            .filter(note => {
+                // If school filter is applied, only include notes from users with matching schools
+                if (schools && schools.length > 0) {
+                    return note.profiles !== null
+                }
+                return true
+            })
 
-            const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
-
-            // Filter notes to only include those from matching profiles (if school filter applied)
-            notesWithProfiles = notesData
-                .map(note => ({
-                    ...note,
-                    profiles: note.user_id ? profileMap.get(note.user_id) || null : null
-                }))
-                .filter(note => {
-                    // If school filter is applied, only include notes from users with matching schools
-                    if (schools && schools.length > 0) {
-                        return note.profiles !== null
-                    }
-                    return true
-                })
-
-            // Adjust count if school filter removed some notes
-            if (schools && schools.length > 0) {
-                // We need to get accurate count with school filter
-                // This is a limitation - for now we'll use the filtered array length
-                // In production, you'd want a more sophisticated query or view
-                totalCount = notesWithProfiles.length
-            }
+        // Adjust count if school filter removed some notes
+        if (schools && schools.length > 0) {
+            totalCount = notesWithProfiles.length
         }
     }
 
     // If school filter and we have fewer notes than expected, we need better counting
-    // For now, handle the case where school filtering happens post-query
     if (schools && schools.length > 0 && notesWithProfiles.length === 0 && page === 1) {
         totalCount = 0
     }
@@ -968,7 +992,8 @@ export async function getExploreNotesWithSchoolFilter(params: ExploreNotesParams
             teacher_name,
             created_at,
             updated_at,
-            user_id
+            user_id,
+            folder_id
         `)
         .eq('is_public', true)
         .order('updated_at', { ascending: false })
@@ -1021,25 +1046,52 @@ export async function getExploreNotesWithSchoolFilter(params: ExploreNotesParams
     const notesData = notesResult.data || []
     const totalCount = countResult.count || 0
 
-    // Fetch profiles for the notes
+    // Fetch profiles and folders for the notes
     let notesWithProfiles: ExploreNote[] = []
 
     if (notesData.length > 0) {
         const userIds = [...new Set(notesData.map(n => n.user_id).filter(Boolean))]
+        const folderIds = [...new Set(notesData.map(n => n.folder_id).filter(Boolean))]
 
-        if (userIds.length > 0) {
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, username, display_name, avatar_url, school')
-                .in('id', userIds)
+        // Fetch profiles
+        const profilesPromise = userIds.length > 0
+            ? supabase.from('profiles').select('id, username, display_name, avatar_url, school').in('id', userIds)
+            : Promise.resolve({ data: [] })
 
-            const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+        // Fetch folders (we need all folders for the user to build paths)
+        const foldersPromise = folderIds.length > 0
+            ? supabase.from('folders').select('id, name, parent_id, user_id').or(`id.in.(${folderIds.join(',')}),user_id.in.(${userIds.join(',')})`)
+            : Promise.resolve({ data: [] })
 
-            notesWithProfiles = notesData.map(note => ({
-                ...note,
-                profiles: note.user_id ? profileMap.get(note.user_id) || null : null
-            }))
+        const [{ data: profiles }, { data: folders }] = await Promise.all([profilesPromise, foldersPromise])
+
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+        const folderMap = new Map(folders?.map(f => [f.id, f]) || [])
+
+        // Build folder path helper
+        const buildFolderPath = (folderId: string | null): string | null => {
+            if (!folderId) return null
+            const pathParts: string[] = []
+            let currentId: string | null = folderId
+            const visited = new Set<string>() // Prevent infinite loops
+            while (currentId && !visited.has(currentId)) {
+                visited.add(currentId)
+                const folder = folderMap.get(currentId)
+                if (folder) {
+                    pathParts.unshift(folder.name)
+                    currentId = folder.parent_id
+                } else {
+                    break
+                }
+            }
+            return pathParts.length > 0 ? pathParts.join(' / ') : null
         }
+
+        notesWithProfiles = notesData.map(note => ({
+            ...note,
+            folder_path: buildFolderPath(note.folder_id),
+            profiles: note.user_id ? profileMap.get(note.user_id) || null : null
+        }))
     }
 
     const totalPages = Math.ceil(totalCount / limit)
