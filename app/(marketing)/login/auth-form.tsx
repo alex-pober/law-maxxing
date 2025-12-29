@@ -42,6 +42,14 @@ export default function AuthForm() {
     const router = useRouter()
     const supabase = createClient()
 
+    const getRedirectUrl = () => {
+        // Use environment variable in production, fallback to location.origin
+        if (process.env.NEXT_PUBLIC_SITE_URL) {
+            return `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+        }
+        return `${location.origin}/auth/callback`
+    }
+
     const handleGoogleSignIn = async () => {
         setGoogleLoading(true)
         setError(null)
@@ -50,7 +58,7 @@ export default function AuthForm() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${location.origin}/auth/callback`,
+                redirectTo: getRedirectUrl(),
             },
         })
 
@@ -90,7 +98,7 @@ export default function AuthForm() {
             email,
             password,
             options: {
-                emailRedirectTo: `${location.origin}/auth/callback`,
+                emailRedirectTo: getRedirectUrl(),
             },
         })
 
