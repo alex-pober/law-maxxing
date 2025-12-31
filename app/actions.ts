@@ -540,12 +540,12 @@ export async function updateProfile(data: {
     display_name?: string
     username?: string
     school?: string
-}) {
+}): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-        throw new Error('User not authenticated')
+        return { success: false, error: 'User not authenticated' }
     }
 
     // Explicitly extract and validate allowed fields to prevent field injection
@@ -563,7 +563,7 @@ export async function updateProfile(data: {
             .single()
 
         if (existingUser) {
-            throw new Error('Username is already taken')
+            return { success: false, error: 'Username is already taken' }
         }
     }
 
@@ -575,14 +575,15 @@ export async function updateProfile(data: {
     if (error) {
         console.error('Error updating profile:', error)
         if (error.code === '23505') {
-            throw new Error('Username is already taken')
+            return { success: false, error: 'Username is already taken' }
         }
-        throw new Error('Failed to update profile')
+        return { success: false, error: 'Failed to update profile' }
     }
 
     revalidatePath('/dashboard')
     revalidatePath('/explore')
     revalidatePath('/settings')
+    return { success: true }
 }
 
 export async function getProfile() {

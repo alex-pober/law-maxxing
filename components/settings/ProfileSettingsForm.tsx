@@ -35,17 +35,19 @@ export function ProfileSettingsForm({ userId, initialProfile, userEmail }: Profi
         setSaved(false);
 
         startTransition(async () => {
-            try {
-                await updateProfile({
-                    display_name: displayName || undefined,
-                    username: username || undefined,
-                    school: school || undefined,
-                });
-                setSaved(true);
-                setTimeout(() => setSaved(false), 3000);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to save profile");
+            const result = await updateProfile({
+                display_name: displayName || undefined,
+                username: username || undefined,
+                school: school || undefined,
+            });
+
+            if (!result.success) {
+                setError(result.error || "Failed to save profile");
+                return;
             }
+
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
         });
     };
 

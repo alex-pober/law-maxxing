@@ -61,6 +61,7 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     const [newFolderName, setNewFolderName] = useState('')
     const [isCreatingNote, setIsCreatingNote] = useState(false)
     const [newNoteTitle, setNewNoteTitle] = useState('')
+    const [isSubmittingNote, setIsSubmittingNote] = useState(false)
     const [activeId, setActiveId] = useState<string | null>(null)
     const [isMounted, setIsMounted] = useState(false)
     const [isOverRootZone, setIsOverRootZone] = useState(false)
@@ -127,11 +128,16 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
 
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (newNoteTitle.trim()) {
-            const noteId = await createNoteInline(newNoteTitle, selectedFolderId)
-            setNewNoteTitle('')
-            setIsCreatingNote(false)
-            router.push(`/notes/${noteId}`)
+        if (newNoteTitle.trim() && !isSubmittingNote) {
+            setIsSubmittingNote(true)
+            try {
+                const noteId = await createNoteInline(newNoteTitle, selectedFolderId)
+                setNewNoteTitle('')
+                setIsCreatingNote(false)
+                router.push(`/notes/${noteId}`)
+            } finally {
+                setIsSubmittingNote(false)
+            }
         }
     }
 
@@ -469,13 +475,14 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                                 autoFocus
                                 value={newNoteTitle}
                                 onChange={(e) => setNewNoteTitle(e.target.value)}
-                                placeholder="Note title..."
-                                className="h-[22px] text-[13px] rounded-none border-primary bg-background"
+                                placeholder={isSubmittingNote ? "Creating..." : "Note title..."}
+                                disabled={isSubmittingNote}
+                                className="h-[22px] text-[13px] rounded-none border-primary bg-background disabled:opacity-50"
                                 onBlur={() => {
-                                    if (!newNoteTitle.trim()) setIsCreatingNote(false)
+                                    if (!newNoteTitle.trim() && !isSubmittingNote) setIsCreatingNote(false)
                                 }}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Escape') setIsCreatingNote(false)
+                                    if (e.key === 'Escape' && !isSubmittingNote) setIsCreatingNote(false)
                                 }}
                             />
                         </form>
