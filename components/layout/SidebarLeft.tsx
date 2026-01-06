@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Compass } from 'lucide-react';
 import { FileExplorer } from '@/components/file-explorer/FileExplorer';
 import { UserCard } from '@/components/file-explorer/UserCard';
+import { SidebarSearch } from '@/components/search/SidebarSearch';
 
 interface Note {
     id: string;
@@ -28,6 +29,9 @@ interface SidebarLeftProps {
 export function SidebarLeft({ folders, notes, userEmail }: SidebarLeftProps) {
     return (
         <aside className="h-full bg-sidebar border-r border-border/50 flex flex-col">
+            {/* Search */}
+            <SidebarSearch />
+
             <div className="flex-1 overflow-hidden">
                 <FileExplorer folders={folders} notes={notes}/>
             </div>

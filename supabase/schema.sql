@@ -180,3 +180,15 @@ create trigger profiles_updated_at
 -- drop policy if exists "Users can only access their own notes" on notes;
 -- drop policy if exists "Users can manage their own folders" on folders;
 -- Then run the new policy creates above
+
+-- ===========================================
+-- FULL TEXT SEARCH (see migrations/20260106_add_fts_to_notes.sql)
+-- ===========================================
+-- Migration: Add Full Text Search column to notes
+-- ALTER TABLE notes ADD COLUMN IF NOT EXISTS fts tsvector
+-- GENERATED ALWAYS AS (
+--   setweight(to_tsvector('english', coalesce(content_markdown, '')), 'A') ||
+--   setweight(to_tsvector('english', coalesce(title, '')), 'B') ||
+--   setweight(to_tsvector('english', coalesce(description, '')), 'C')
+-- ) STORED;
+-- CREATE INDEX IF NOT EXISTS notes_fts_idx ON notes USING GIN (fts);

@@ -1401,6 +1401,113 @@ export async function saveGeneratedNotes(
     return { noteId: data.id }
 }
 
+// ============================================
+// Full Text Search
+// ============================================
+
+export interface SearchResult {
+    id: string
+    title: string
+    description: string | null
+    content_markdown: string
+    folder_id: string | null
+    folder_path: string | null
+    updated_at: string
+    is_favorite: boolean
+}
+
+export async function searchNotes(query: string): Promise<SearchResult[]> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        throw new Error('User not authenticated')
+    }
+
+    if (!query.trim()) {
+        return []
+    }
+
+    // Format query for websearch - this handles natural language queries
+    const formattedQuery = query.trim()
+
+    // Use textSearch with the fts column
+    const { data: notes, error } = await supabase
+        .from('notes')
+        .select('id, title, description, content_markdown, folder_id, updated_at, is_favorite')
+        .eq('user_id', user.id)
+        .textSearch('fts', formattedQuery, {
+            type: 'websearch',
+            config: 'english'
+        })
+        .limit(50)
+
+    if (error) {
+        console.error('Error searching notes:', error)
+        // Fallback to ilike search if FTS column doesn't exist yet
+        const { data: fallbackNotes, error: fallbackError } = await supabase
+            .from('notes')
+            .select('id, title, description, content_markdown, folder_id, updated_at, is_favorite')
+            .eq('user_id', user.id)
+            .or(`title.ilike.%${sanitizeSearchQuery(query)}%,content_markdown.ilike.%${sanitizeSearchQuery(query)}%`)
+            .order('updated_at', { ascending: false })
+            .limit(50)
+
+        if (fallbackError) {
+            throw new Error('Failed to search notes')
+        }
+
+        return addFolderPathsToNotes(supabase, user.id, fallbackNotes || [])
+    }
+
+    return addFolderPathsToNotes(supabase, user.id, notes || [])
+}
+
+// Helper to add folder paths to search results
+async function addFolderPathsToNotes(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    userId: string,
+    notes: Array<{
+        id: string
+        title: string
+        description: string | null
+        content_markdown: string
+        folder_id: string | null
+        updated_at: string
+        is_favorite: boolean
+    }>
+): Promise<SearchResult[]> {
+    if (notes.length === 0) return []
+
+    // Fetch all folders for the user to build paths
+    const { data: folders } = await supabase
+        .from('folders')
+        .select('id, name, parent_id')
+        .eq('user_id', userId)
+
+    const folderMap = new Map(folders?.map(f => [f.id, f]) || [])
+
+    function getFolderPath(folderId: string | null): string | null {
+        if (!folderId) return null
+        const parts: string[] = []
+        let currentId: string | null = folderId
+        const visited = new Set<string>()
+        while (currentId && !visited.has(currentId)) {
+            visited.add(currentId)
+            const folder = folderMap.get(currentId)
+            if (!folder) break
+            parts.unshift(folder.name)
+            currentId = folder.parent_id
+        }
+        return parts.length > 0 ? parts.join(' / ') : null
+    }
+
+    return notes.map(note => ({
+        ...note,
+        folder_path: getFolderPath(note.folder_id)
+    }))
+}
+
 export async function deleteAccount(): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient()
 
