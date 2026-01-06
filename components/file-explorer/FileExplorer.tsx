@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { FolderItem } from './FolderItem'
 import { FileItem } from './FileItem'
 import { VttConvertDialog } from './VttConvertDialog'
-import { createFolder, createNoteInline, reorderItems, moveNote, getNotesForDownload } from '@/app/actions'
+import { createFolder, createNoteInline, reorderItems, moveNote, moveFolder, getNotesForDownload } from '@/app/actions'
 import JSZip from 'jszip'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
@@ -116,6 +116,19 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
 
     const rootFolders = sortedFolders.filter(f => !f.parent_id)
     const rootNotes = sortedNotes.filter(n => !n.folder_id)
+
+    // Helper to check if targetFolderId is a descendant of folderId (would create circular reference)
+    const isDescendantOf = (targetFolderId: string, folderId: string): boolean => {
+        let currentId: string | null = targetFolderId
+        const visited = new Set<string>()
+        while (currentId && !visited.has(currentId)) {
+            visited.add(currentId)
+            if (currentId === folderId) return true
+            const folder = optimisticFolders.find(f => f.id === currentId)
+            currentId = folder?.parent_id ?? null
+        }
+        return false
+    }
 
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -267,12 +280,24 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
         }
 
         // FIRST: Check if we dropped on the root drop zone
-        if (droppedOnRootZone && draggedNote && draggedNote.folder_id) {
-            setOptimisticNotes(prev => prev.map(n =>
-                n.id === dragActiveId ? { ...n, folder_id: null } : n
-            ))
-            moveNote(dragActiveId, null)
-            return
+        if (droppedOnRootZone) {
+            // Handle note being moved to root
+            if (draggedNote && draggedNote.folder_id) {
+                setOptimisticNotes(prev => prev.map(n =>
+                    n.id === dragActiveId ? { ...n, folder_id: null } : n
+                ))
+                moveNote(dragActiveId, null)
+                return
+            }
+            // Handle folder being moved to root
+            const draggedFolderForRoot = optimisticFolders.find(f => f.id === dragActiveId)
+            if (draggedFolderForRoot && draggedFolderForRoot.parent_id) {
+                setOptimisticFolders(prev => prev.map(f =>
+                    f.id === dragActiveId ? { ...f, parent_id: null } : f
+                ))
+                moveFolder(dragActiveId, null)
+                return
+            }
         }
 
         if (!over || active.id === over.id) return
@@ -351,6 +376,24 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
 
         const draggedFolder = optimisticFolders.find(f => f.id === dragActiveId)
         if (draggedFolder) {
+            // Check if dropped on a folder droppable zone (folder-into-folder)
+            const folderDropId = overId.startsWith('folder-drop-') ? overId.replace('folder-drop-', '') : null
+            const targetFolder = folderDropId ? optimisticFolders.find(f => f.id === folderDropId) : null
+
+            if (targetFolder) {
+                // Don't move if already in this folder or if it would create circular reference
+                if (draggedFolder.parent_id === targetFolder.id) return
+                if (draggedFolder.id === targetFolder.id) return
+                if (isDescendantOf(targetFolder.id, draggedFolder.id)) return
+
+                setOptimisticFolders(prev => prev.map(f =>
+                    f.id === dragActiveId ? { ...f, parent_id: targetFolder.id } : f
+                ))
+                moveFolder(dragActiveId, targetFolder.id)
+                return
+            }
+
+            // Regular folder reordering (same parent level)
             const containerFolders = sortedFolders.filter(f => f.parent_id === draggedFolder.parent_id)
             const oldIndex = containerFolders.findIndex(f => f.id === dragActiveId)
             const newIndex = containerFolders.findIndex(f => f.id === overId)
@@ -386,8 +429,9 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
 
     const rootItemIds = [...rootFolders.map(f => f.id), ...rootNotes.map(n => n.id)]
 
-    // Check if currently dragging a note that's inside a folder
-    const isDraggingFromFolder = activeNote && activeNote.folder_id !== null
+    // Check if currently dragging a note that's inside a folder OR a folder that has a parent
+    const isDraggingFromFolder = (activeNote && activeNote.folder_id !== null) ||
+                                  (activeFolder && activeFolder.parent_id !== null)
 
     const content = (
         <div className="flex flex-col h-full bg-sidebar select-none overflow-hidden m-1 mt-3">

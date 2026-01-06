@@ -132,7 +132,7 @@ export function FolderItem({ folder, allFolders, allNotes, level = 0, isMounted 
                         ref={isMounted ? setDroppableRef : undefined}
                         className={cn(
                             "group flex items-center h-[22px] pr-2 cursor-pointer text-[13px] leading-[22px] relative",
-                            "hover:bg-[--sidebar-accent]",
+                            "hover:bg-accent/80",
                             isSelected && "bg-primary/15 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-primary",
                             isDragging && "opacity-50",
                             isOver && "bg-primary/20 ring-1 ring-primary/50"

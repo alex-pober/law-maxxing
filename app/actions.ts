@@ -259,6 +259,54 @@ export async function moveNote(noteId: string, folderId: string | null) {
     revalidatePath('/dashboard')
 }
 
+export async function moveFolder(folderId: string, newParentId: string | null) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        throw new Error('User not authenticated')
+    }
+
+    // Prevent moving folder into itself
+    if (folderId === newParentId) {
+        throw new Error('Cannot move folder into itself')
+    }
+
+    // Check for circular reference - ensure newParentId is not a descendant of folderId
+    if (newParentId) {
+        const { data: allFolders } = await supabase
+            .from('folders')
+            .select('id, parent_id')
+            .eq('user_id', user.id)
+
+        if (allFolders) {
+            const isDescendant = (parentId: string | null, targetId: string): boolean => {
+                if (!parentId) return false
+                if (parentId === targetId) return true
+                const parent = allFolders.find(f => f.id === parentId)
+                return parent ? isDescendant(parent.parent_id, targetId) : false
+            }
+
+            if (isDescendant(newParentId, folderId)) {
+                throw new Error('Cannot move folder into its own descendant')
+            }
+        }
+    }
+
+    const { error } = await supabase
+        .from('folders')
+        .update({ parent_id: newParentId })
+        .eq('id', folderId)
+        .eq('user_id', user.id)
+
+    if (error) {
+        console.error('Error moving folder:', error)
+        throw new Error('Failed to move folder')
+    }
+
+    revalidatePath('/dashboard')
+}
+
 export async function toggleNoteFavorite(noteId: string, isFavorite: boolean) {
     const supabase = await createClient()
 

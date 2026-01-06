@@ -372,7 +372,7 @@ export function FileItem({ note, level = 0, isMounted = false, isSelectMode = fa
 
     const itemClassName = cn(
         "group flex items-center h-[22px] pr-2 text-[13px] leading-[22px] relative",
-        "hover:bg-[--sidebar-accent]",
+        "hover:bg-accent/80",
         isActive && !isSelectMode && "bg-primary/15 text-sidebar-foreground before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-primary",
         isSelected && isSelectMode && "bg-primary/15",
         isDeleting && "opacity-50 pointer-events-none",
