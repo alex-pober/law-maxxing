@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 interface AppMockupProps {
   className?: string;
-  activeFeature?: "live-preview" | "memorize" | "default";
+  activeFeature?: "live-preview" | "default";
 }
 
 export function AppMockup({ className, activeFeature = "default" }: AppMockupProps) {
@@ -89,21 +89,9 @@ export function AppMockup({ className, activeFeature = "default" }: AppMockupPro
               <p>
                 <span className="text-[#7aa2f7] font-medium">Duty</span> is the first element of a negligence claim. The plaintiff must show that the defendant owed them a legal duty to act with a certain standard of care.
               </p>
-              {activeFeature === 'memorize' ? (
-                <div className="p-4 rounded-lg bg-[#24283b] border border-[#7aa2f7]/20">
-                  <p className="font-mono text-[#bb9af7] text-sm opacity-80">
-                    G... r... i... that a d... owes a d... of c... to all f... p... for any r... f... h... caused by their a...
-                  </p>
-                  <div className="mt-2 text-xs text-[#565f89] flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#e0af68]"></span>
-                    Memorize Mode Active
-                  </div>
-                </div>
-              ) : (
-                <p>
-                  General rule is that a defendant owes a <span className="text-[#bb9af7]">duty of care</span> to all foreseeable plaintiffs for any reasonably foreseeable harm caused by their acts.
-                </p>
-              )}
+              <p>
+                General rule is that a defendant owes a <span className="text-[#bb9af7]">duty of care</span> to all foreseeable plaintiffs for any reasonably foreseeable harm caused by their acts.
+              </p>
               <h2 className="text-xl font-semibold text-[#c0caf5] mt-8 mb-4">Standard of Care</h2>
               <p>
                 The default standard is that of a <span className="bg-[#7aa2f7]/10 px-1 rounded text-[#7aa2f7]">reasonably prudent person</span> under similar circumstances.

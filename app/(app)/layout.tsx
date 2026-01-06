@@ -17,6 +17,21 @@ export default async function Layout({
         return redirect("/login");
     }
 
+    // Check if profile is complete
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("id", user.id)
+        .single();
+
+    const isProfileComplete = profile?.display_name
+        && profile.display_name !== 'Anonymous'
+        && profile?.username;
+
+    if (!isProfileComplete) {
+        return redirect("/onboarding");
+    }
+
     // Filter by user_id to only show the current user's notes and folders
     // (RLS allows reading public notes too, but we only want user's own data in the app)
     const { data: notes } = await supabase

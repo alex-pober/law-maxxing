@@ -536,6 +536,77 @@ export async function savePublicNote(publicNoteId: string, targetFolderId?: stri
     return { noteId: newNote.id }
 }
 
+export async function completeOnboarding(data: {
+    display_name: string
+    username: string
+    school?: string
+}): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { success: false, error: 'User not authenticated' }
+    }
+
+    // Validate required fields
+    if (!data.display_name?.trim()) {
+        return { success: false, error: 'Display name is required' }
+    }
+    if (!data.username?.trim()) {
+        return { success: false, error: 'Username is required' }
+    }
+
+    const username = data.username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')
+
+    if (!username) {
+        return { success: false, error: 'Username must contain letters or numbers' }
+    }
+
+    // Check if username is taken by another user
+    const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .neq('id', user.id)
+        .single()
+
+    if (existingUser) {
+        return { success: false, error: 'Username is already taken' }
+    }
+
+    // Get existing profile to preserve avatar_url
+    const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .single()
+
+    // Upsert profile (handles both missing and existing profiles)
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({
+            id: user.id,
+            display_name: data.display_name.trim().slice(0, 100),
+            username: username.slice(0, 50),
+            school: data.school?.trim().slice(0, 200) || null,
+            avatar_url: existingProfile?.avatar_url || user.user_metadata?.avatar_url || null,
+        }, {
+            onConflict: 'id'
+        })
+
+    if (error) {
+        console.error('Error completing onboarding:', error)
+        if (error.code === '23505') {
+            return { success: false, error: 'Username is already taken' }
+        }
+        return { success: false, error: 'Failed to save profile' }
+    }
+
+    revalidatePath('/dashboard')
+    revalidatePath('/onboarding')
+    return { success: true }
+}
+
 export async function updateProfile(data: {
     display_name?: string
     username?: string
@@ -1280,4 +1351,36 @@ export async function saveGeneratedNotes(
     revalidatePath('/notes')
 
     return { noteId: data.id }
+}
+
+export async function deleteAccount(): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+        return { success: false, error: 'User not authenticated' }
+    }
+
+    // Call the edge function to delete the account
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!supabaseUrl) {
+        return { success: false, error: 'Server configuration error' }
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+        },
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+        console.error('Error deleting account:', result.error)
+        return { success: false, error: result.error || 'Failed to delete account' }
+    }
+
+    return { success: true }
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { ProfileSettingsForm } from "@/components/settings/ProfileSettingsForm";
+import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 
 export default async function SettingsPage() {
     const supabase = await createClient();
@@ -65,6 +66,15 @@ export default async function SettingsPage() {
                             <p className="text-xs text-muted-foreground/70 mt-1 font-mono">{user.id}</p>
                         </div>
                     </div>
+                </section>
+
+                {/* Danger Zone */}
+                <section className="p-6 rounded-xl bg-red-500/[0.02] border border-red-500/20">
+                    <h2 className="text-xl font-semibold text-red-400 mb-1">Danger Zone</h2>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        Irreversible and destructive actions
+                    </p>
+                    <DeleteAccountSection />
                 </section>
             </div>
         </div>

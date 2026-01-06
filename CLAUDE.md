@@ -45,7 +45,7 @@ All database mutations are in `app/actions.ts`:
 - `components/layout/` - AppLayout, AppNavbar, SidebarLeft, SidebarRight
 - `components/file-explorer/` - FileExplorer, FolderItem, FileItem for note navigation
 - `components/BlockEditor.tsx` - Tiptap rich text editor with markdown support
-- `components/NoteRenderer.tsx` - Read-only Tiptap renderer with memorize mode
+- `components/NoteRenderer.tsx` - Read-only Tiptap renderer
 - `lib/tiptap-extensions.ts` - Custom Tiptap extensions (HeadingWithId for TOC support)
 
 ### Key Patterns
