@@ -5,11 +5,12 @@ import { cn } from '@/lib/utils'
 import { FolderItem } from './FolderItem'
 import { FileItem } from './FileItem'
 import { VttConvertDialog } from './VttConvertDialog'
+import { PptConvertDialog } from './PptConvertDialog'
 import { createFolder, createNoteInline, reorderItems, moveNote, moveFolder, getNotesForDownload } from '@/app/actions'
 import JSZip from 'jszip'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
-import { Ellipsis, FilePlus, FolderPlus, FileText, Folder, CheckSquare, Download, X, FileAudio } from 'lucide-react'
+import { Ellipsis, FilePlus, FolderPlus, FileText, Folder, CheckSquare, Download, X, FileAudio, Presentation } from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -69,6 +70,7 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
     const [isSelectMode, setIsSelectMode] = useState(false)
     const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set())
     const [isVttDialogOpen, setIsVttDialogOpen] = useState(false)
+    const [isPptDialogOpen, setIsPptDialogOpen] = useState(false)
 
     const [optimisticFolders, setOptimisticFolders] = useState<Folder[]>(folders)
     const [optimisticNotes, setOptimisticNotes] = useState<Note[]>(notes)
@@ -469,6 +471,10 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
                                 <FileAudio className="h-4 w-4 mr-2" />
                                 Import VTT Transcript
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsPptDialogOpen(true)}>
+                                <Presentation className="h-4 w-4 mr-2" />
+                                Import PowerPoint
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={handleToggleSelectMode}>
                                 <CheckSquare className="h-4 w-4 mr-2" />
                                 Select
@@ -654,6 +660,12 @@ export function FileExplorer({ folders, notes }: FileExplorerProps) {
             <VttConvertDialog
                 open={isVttDialogOpen}
                 onOpenChange={setIsVttDialogOpen}
+                targetFolderId={selectedFolderId}
+            />
+
+            <PptConvertDialog
+                open={isPptDialogOpen}
+                onOpenChange={setIsPptDialogOpen}
                 targetFolderId={selectedFolderId}
             />
         </DndContext>

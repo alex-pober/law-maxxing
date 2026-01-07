@@ -2,7 +2,9 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GoogleAIFileManager, FileState } from "@google/generative-ai/server"
+import CloudConvert from 'cloudconvert'
 import { parseVttContent } from '@/lib/vtt-parser'
 
 // Helper to sanitize search queries by escaping LIKE pattern special characters
@@ -1252,8 +1254,8 @@ export async function generateNotesFromVtt(
         throw new Error('VTT file appears to be empty or too short')
     }
 
-    // Initialize the new Gemini SDK
-    const ai = new GoogleGenAI({ apiKey })
+    // Initialize the Gemini SDK
+    const genAI = new GoogleGenerativeAI(apiKey)
 
     // Generate study notes from transcript
     const prompt = `You are an expert at creating comprehensive law school study notes from lecture transcripts.
@@ -1323,15 +1325,15 @@ ${transcript}
 
 Generate comprehensive law school study notes following the above structure, paying special attention to definitions, black letter law, repeated concepts, and anything the teacher signals will be tested:`
 
-    const result = await ai.models.generateContent({
+    const model = genAI.getGenerativeModel({
         model: 'gemini-3-pro-preview',
-        contents: prompt,
-        config: {
+        generationConfig: {
             temperature: 0.3,
         }
     })
 
-    const studyNotes = result.text
+    const result = await model.generateContent(prompt)
+    const studyNotes = result.response.text()
 
     if (!studyNotes) {
         throw new Error('Failed to generate study notes from Gemini')
@@ -1346,6 +1348,193 @@ Generate comprehensive law school study notes following the above structure, pay
         .replace(/\b\w/g, c => c.toUpperCase())
 
     return { markdown: studyNotes, title }
+}
+
+/**
+ * Generates study notes using Gemini and the File API.
+ * Converts PPTX to PDF via CloudConvert first since Gemini doesn't support PPTX.
+ * @param formData - FormData object containing 'file' (the PPTX)
+ */
+export async function generateNotesFromPpt(formData: FormData): Promise<{ markdown: string; title: string }> {
+    // 1. Auth Check
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) throw new Error('User not authenticated')
+
+    // 2. Setup API Keys & Clients
+    const geminiApiKey = process.env.GEMINI_API_KEY
+    if (!geminiApiKey) throw new Error('GEMINI_API_KEY is missing')
+
+    const cloudConvertApiKey = process.env.CLOUDCONVERT_API_KEY
+    if (!cloudConvertApiKey) throw new Error('CLOUDCONVERT_API_KEY is missing')
+
+    const fileManager = new GoogleAIFileManager(geminiApiKey)
+    const genAI = new GoogleGenerativeAI(geminiApiKey)
+    const cloudConvert = new CloudConvert(cloudConvertApiKey)
+
+    // 3. Extract File from FormData
+    const file = formData.get('file') as File
+    if (!file) throw new Error('No file provided')
+
+    const displayName = file.name || 'Lecture_Slides.pptx'
+
+    try {
+        // 4. Convert PPTX to PDF using CloudConvert
+        console.log(`Converting ${displayName} to PDF via CloudConvert...`)
+
+        // Create a job with import, convert, and export tasks
+        const job = await cloudConvert.jobs.create({
+            tasks: {
+                'import-pptx': {
+                    operation: 'import/upload'
+                },
+                'convert-to-pdf': {
+                    operation: 'convert',
+                    input: ['import-pptx'],
+                    input_format: 'pptx',
+                    output_format: 'pdf'
+                },
+                'export-pdf': {
+                    operation: 'export/url',
+                    input: ['convert-to-pdf']
+                }
+            }
+        })
+
+        // Get the upload task
+        const uploadTask = job.tasks.find(t => t.name === 'import-pptx')
+        if (!uploadTask) throw new Error('Failed to create upload task')
+
+        // Upload the PPTX file
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        await cloudConvert.tasks.upload(uploadTask, buffer, displayName)
+
+        // Wait for the job to complete
+        const completedJob = await cloudConvert.jobs.wait(job.id)
+
+        // Get the export task with the PDF URL
+        const exportTask = completedJob.tasks.find(t => t.name === 'export-pdf')
+        if (!exportTask || !exportTask.result?.files?.[0]?.url) {
+            throw new Error('Failed to get converted PDF')
+        }
+
+        const pdfUrl = exportTask.result.files[0].url
+
+        // Download the PDF
+        console.log('Downloading converted PDF...')
+        const pdfResponse = await fetch(pdfUrl)
+        if (!pdfResponse.ok) throw new Error('Failed to download converted PDF')
+
+        const pdfArrayBuffer = await pdfResponse.arrayBuffer()
+        const pdfBuffer = Buffer.from(pdfArrayBuffer)
+
+        // 5. Upload PDF to Google AI File API
+        console.log('Uploading PDF to Gemini...')
+        const pdfDisplayName = displayName.replace(/\.(pptx?|PPTX?)$/i, '.pdf')
+
+        const uploadResponse = await fileManager.uploadFile(pdfBuffer, {
+            mimeType: 'application/pdf',
+            displayName: pdfDisplayName,
+        })
+
+        console.log(`Upload complete. URI: ${uploadResponse.file.uri}`)
+
+        // 6. Wait for File Processing
+        let fileStat = await fileManager.getFile(uploadResponse.file.name)
+
+        while (fileStat.state === FileState.PROCESSING) {
+            console.log('File is processing...')
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+            fileStat = await fileManager.getFile(uploadResponse.file.name)
+        }
+
+        if (fileStat.state === FileState.FAILED) {
+            throw new Error('Gemini failed to process the PDF.')
+        }
+
+        // 7. Generate Content with Gemini
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-3-pro-preview',
+            generationConfig: {
+                temperature: 0.3,
+            }
+        })
+
+        const prompt = `You are an expert at creating comprehensive law school study notes from lecture slides.
+
+Convert the following lecture slides into well-organized study notes in Markdown format optimized for legal education.
+
+## Markdown Structure Requirements:
+
+### Heading Hierarchy (CRITICAL - follow this exactly - this is used to make outline):
+- Use # (h1) ONLY for the main title at the very top
+- Use ## (h2) for major topics/sections (e.g., "## Elements of the Offense", "## Key Cases")
+- Use ### (h3) for subtopics within sections (e.g., "### Mens Rea", "### Actus Reus")
+- Use #### (h4) for sub-subtopics or case breakdowns (e.g., "#### Facts", "#### Holding")
+- Use ##### (h5) for fine-grained details when needed
+
+### Content Formatting:
+- Use **bold** for critical legal terms, case names, and key concepts that students must memorize
+- Use bullet points (-) for lists of elements, factors, or related items
+- Use numbered lists (1.) for sequential steps or ranked factors
+- Use > blockquotes for important quotes, rules, or holdings that should stand out
+- Use \`inline code\` sparingly for statutory citations or section numbers
+
+### 🎯 HIGH-PRIORITY Content Detection:
+Pay special attention to and prominently feature:
+- **Definitions** - Format as: 📚 **Term**: Definition
+- **Black Letter Law** - Core legal rules/doctrines should be in blockquotes with ⚖️
+- **Key Concepts** - Mark important concepts with ⭐
+
+### Emoji Usage Guide:
+- 📚 = Definitions and key terms
+- ⚖️ = Black letter law / legal rules
+- ⚠️ = Important warnings or common mistakes
+- ⭐ = Key concepts to remember
+- 💡 = Helpful tips or memory aids
+- ⚡ = Quick distinction or comparison between concepts
+
+### What NOT to do:
+- Do not use h1 (#) except for the main title
+- Do not skip heading levels (e.g., don't go from ## to ####)
+- Do not add meta-commentary about the notes
+- Do not overuse emojis - use them strategically only for the categories listed above
+
+Generate comprehensive law school study notes from these lecture slides:`
+
+        const result = await model.generateContent([
+            {
+                fileData: {
+                    mimeType: uploadResponse.file.mimeType,
+                    fileUri: uploadResponse.file.uri
+                }
+            },
+            { text: prompt }
+        ])
+
+        // 8. Cleanup - delete file from Google's servers
+        await fileManager.deleteFile(uploadResponse.file.name)
+
+        const studyNotes = result.response.text()
+
+        // 9. Format Title
+        const baseTitle = displayName.replace(/\.(pptx?|PPTX?)$/i, '')
+        const title = baseTitle
+            .replace(/[_-]/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase())
+
+        return { markdown: studyNotes, title }
+
+    } catch (error) {
+        console.error('Error in generateNotesFromPpt:', error)
+        if (error instanceof Error) {
+            throw new Error(`Failed to analyze presentation: ${error.message}`)
+        }
+        throw new Error('Failed to analyze presentation.')
+    }
 }
 
 export async function saveGeneratedNotes(

@@ -48,6 +48,7 @@ export function SidebarSearch() {
     // Debounced search
     useEffect(() => {
         if (!query.trim()) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setResults([]);
             return;
         }
@@ -147,7 +148,7 @@ export function SidebarSearch() {
                 className={cn(
                     "w-full flex items-center gap-2 px-3 py-2 mx-2 mt-2 mb-1 rounded-lg",
                     "bg-muted/30 hover:bg-muted/50",
-                    "border border-white/[0.04] hover:border-white/[0.08]",
+                    "border border-white/4 hover:border-white/8",
                     "text-muted-foreground/60 hover:text-muted-foreground/80",
                     "transition-all duration-200",
                     "text-sm"
@@ -158,7 +159,7 @@ export function SidebarSearch() {
                 <span className="flex-1 text-left truncate">Search notes...</span>
                 <kbd className={cn(
                     "hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded",
-                    "bg-black/20 border border-white/[0.06]",
+                    "bg-black/20 border border-white/6",
                     "text-[10px] font-medium text-muted-foreground/50"
                 )}>
                     <span className="text-[11px]">⌘</span>K
@@ -176,13 +177,13 @@ export function SidebarSearch() {
                         ref={containerRef}
                         className={cn(
                             "relative w-full max-w-2xl mx-4 rounded-xl overflow-hidden",
-                            "bg-gradient-to-br from-card to-card/95",
-                            "border border-white/[0.08]",
+                            "bg-linear-to-br from-card to-card/95",
+                            "border border-white/8",
                             "shadow-2xl shadow-black/40"
                         )}
                     >
                         {/* Search Input */}
-                        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+                        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/6">
                             {isSearching ? (
                                 <Loader2 className="h-5 w-5 text-muted-foreground/50 animate-spin shrink-0" />
                             ) : (
@@ -210,7 +211,7 @@ export function SidebarSearch() {
                                     className={cn(
                                         "p-1 rounded-md",
                                         "text-muted-foreground/50 hover:text-muted-foreground",
-                                        "hover:bg-white/[0.05]",
+                                        "hover:bg-white/5",
                                         "transition-colors"
                                     )}
                                 >
@@ -242,7 +243,7 @@ export function SidebarSearch() {
                                                 "transition-colors duration-75",
                                                 index === selectedIndex
                                                     ? "bg-primary/10"
-                                                    : "hover:bg-white/[0.03]"
+                                                    : "hover:bg-white/3"
                                             )}
                                         >
                                             <div className="flex items-start gap-3">
@@ -291,19 +292,19 @@ export function SidebarSearch() {
                         {/* Footer hints */}
                         <div className={cn(
                             "flex items-center justify-end gap-4 px-4 py-2",
-                            "border-t border-white/[0.04]",
+                            "border-t border-white/4",
                             "text-[11px] text-muted-foreground/30"
                         )}>
                             <span className="flex items-center gap-1">
-                                <kbd className="px-1 py-0.5 rounded bg-white/[0.05]">↑↓</kbd>
+                                <kbd className="px-1 py-0.5 rounded bg-white/5">↑↓</kbd>
                                 navigate
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="px-1 py-0.5 rounded bg-white/[0.05]">↵</kbd>
+                                <kbd className="px-1 py-0.5 rounded bg-white/5">↵</kbd>
                                 open
                             </span>
                             <span className="flex items-center gap-1">
-                                <kbd className="px-1 py-0.5 rounded bg-white/[0.05]">esc</kbd>
+                                <kbd className="px-1 py-0.5 rounded bg-white/5">esc</kbd>
                                 close
                             </span>
                         </div>
