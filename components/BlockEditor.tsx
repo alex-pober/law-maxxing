@@ -359,8 +359,42 @@ export function BlockEditor({ initialContent, onSave }: BlockEditorProps) {
         content: initialContent,
         editorProps: {
             attributes: {
-                class: 'prose prose-slate max-w-none dark:prose-invert focus:outline-none min-h-[400px] px-4 py-3',
-                spellcheck: 'true',
+                spellCheck: 'true',
+                class: 'prose prose-slate max-w-none dark:prose-invert focus:outline-none min-h-[400px] px-4 py-3'
+            },
+            handleKeyDown: (view, event) => {
+                // Handle Tab key
+                if (event.key === 'Tab') {
+                    const { state, dispatch } = view;
+                    const { $from } = state.selection;
+
+                    // Check if we're in a code block - insert tab character
+                    const isInCodeBlock = $from.parent.type.name === 'codeBlock';
+                    if (isInCodeBlock && !event.shiftKey) {
+                        event.preventDefault();
+                        const tr = state.tr.insertText('\t');
+                        dispatch(tr);
+                        return true;
+                    }
+
+                    // Check if we're in a list - let Tiptap handle it
+                    const isInList = $from.node($from.depth)?.type.name === 'listItem' ||
+                                     $from.node($from.depth)?.type.name === 'taskItem' ||
+                                     $from.node($from.depth - 1)?.type.name === 'bulletList' ||
+                                     $from.node($from.depth - 1)?.type.name === 'orderedList' ||
+                                     $from.node($from.depth - 1)?.type.name === 'taskList' ||
+                                     $from.node($from.depth - 1)?.type.name === 'listItem' ||
+                                     $from.node($from.depth - 1)?.type.name === 'taskItem';
+                    if (isInList) {
+                        // Return false to let Tiptap's ListItem extension handle Tab
+                        return false;
+                    }
+
+                    // For regular text, prevent Tab from escaping the editor
+                    event.preventDefault();
+                    return true;
+                }
+                return false;
             },
         },
         onUpdate: ({ editor }) => {
@@ -434,7 +468,7 @@ export function BlockEditor({ initialContent, onSave }: BlockEditorProps) {
                     <div className="sticky -top-6 lg:-top-8 z-10">
                         <MenuBar editor={editor} />
                     </div>
-                    <EditorContent editor={editor} />
+                    <EditorContent editor={editor} spellCheck={true}/>
                 </div>
             )}
         </div>

@@ -129,6 +129,7 @@ export function SidebarRight() {
                             ref={item.id === activeId ? activeItemRef : null}
                             href={`#${item.id}`}
                             onClick={(e) => handleClick(e, item.id)}
+                            tabIndex={-1}
                             className={cn(
                                 "inline-block no-underline transition-colors hover:text-foreground cursor-pointer",
                                 item.id === activeId
