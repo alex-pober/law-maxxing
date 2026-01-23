@@ -1258,9 +1258,10 @@ export async function generateNotesFromVtt(
     const genAI = new GoogleGenerativeAI(apiKey)
 
     // Generate study notes from transcript
-    const prompt = `You are an expert at creating comprehensive law school study notes from lecture transcripts.
+    const prompt = `
+${transcript}
 
-Convert the following lecture transcript into well-organized study notes in Markdown format optimized for legal education.
+Convert the above zoom lecture transcript into detailed study notes in Markdown format outline optimized for law school.
 
 ## Markdown Structure Requirements:
 
@@ -1270,33 +1271,9 @@ Convert the following lecture transcript into well-organized study notes in Mark
 - Use ### (h3) for subtopics within sections (e.g., "### Mens Rea", "### Actus Reus")
 - Use #### (h4) for sub-subtopics or case breakdowns (e.g., "#### Facts", "#### Holding")
 - Use ##### (h5) for fine-grained details when needed
+- Number headings using I, II, III, IV... format
 
-### Content Formatting:
-- Use **bold** for critical legal terms, case names, and key concepts that students must memorize
-- Use bullet points (-) for lists of elements, factors, or related items
-- Use numbered lists (1.) for sequential steps or ranked factors
-- Use > blockquotes for important quotes, rules, or holdings that should stand out
-- Use \`inline code\` sparingly for statutory citations or section numbers
-
-### Legal Note-Taking Conventions:
-- Case names should be **bolded** (e.g., **Miranda v. Arizona**)
-- When breaking down cases, use this structure:
-  #### Case Name
-  - **Facts**: Brief relevant facts
-  - **Issue**: Legal question presented
-  - **Holding**: Court's decision
-  - **Reasoning**: Key rationale
-  - **Rule**: Extractable legal rule
-
-### 🎯 HIGH-PRIORITY Content Detection:
-Pay special attention to and prominently feature:
-- **Definitions** - When teacher defines a term, format as: 📚 **Term**: Definition
-- **Black Letter Law** - Core legal rules/doctrines should be in blockquotes with ⚖️
-- **Repeated Concepts** - If teacher repeats something multiple times, it's important - mark with 🔁
-- **Exam Signals** - When teacher says "this will be on the exam", "this is important", "make sure you know this", "I always test this", "you need to know this", etc. - mark with ⚠️ **EXAM ALERT**
-- **Teacher Emphasis** - Anything the teacher stresses, emphasizes, or spends extra time on - mark with ⭐
-
-### Emoji Usage Guide:
+### Emoji Usage Guide (if applied):
 - 📚 = Definitions and key terms
 - ⚖️ = Black letter law / legal rules
 - ⚠️ = Exam alerts / "this will be tested"
@@ -1305,25 +1282,9 @@ Pay special attention to and prominently feature:
 - 💡 = Helpful tips or memory aids mentioned
 - ⚡ = Quick distinction or comparison between concepts
 
-### Organization:
-- Start with a brief ## Overview or ## Introduction if the lecture covers multiple topics
+### Additonal Notes:
 - Group related concepts under appropriate headings
-- If there are exam alerts, consider adding a ## ⚠️ Exam Focus section collecting all tested items
-- End with a ## Summary section with key takeaways
-- Include a ## 📚 Key Terms section if many definitions were covered
-
-### What NOT to do:
-- Do not use h1 (#) except for the main title
-- Do not skip heading levels (e.g., don't go from ## to ####)
-- Do not include timestamps or speaker labels from the transcript
-- Do not add meta-commentary about the notes
-- Do not overuse emojis - use them strategically only for the categories listed above
-- Do not use excessive formatting - keep it clean and scannable
-
-Transcript:
-${transcript}
-
-Generate comprehensive law school study notes following the above structure, paying special attention to definitions, black letter law, repeated concepts, and anything the teacher signals will be tested:`
+- If there are mentions of concepts being on finals, test, or bar, consider adding ⚠️ Exam Focus section collecting all tested items`
 
     const model = genAI.getGenerativeModel({
         model: 'gemini-3-pro-preview',
