@@ -3,7 +3,8 @@
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { HeadingWithId } from '@/lib/tiptap-extensions';
+import { HeadingWithId, BackspaceListBehavior } from '@/lib/tiptap-extensions';
+import { Indent } from '@/lib/tiptap-indent-extension';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
@@ -330,6 +331,8 @@ export function BlockEditor({ initialContent, onSave }: BlockEditorProps) {
             HeadingWithId.configure({
                 levels: [1, 2, 3, 4, 5, 6],
             }),
+            BackspaceListBehavior,
+            Indent,
             Placeholder.configure({
                 placeholder: 'Start writing...',
             }),
@@ -377,22 +380,8 @@ export function BlockEditor({ initialContent, onSave }: BlockEditorProps) {
                         return true;
                     }
 
-                    // Check if we're in a list - let Tiptap handle it
-                    const isInList = $from.node($from.depth)?.type.name === 'listItem' ||
-                                     $from.node($from.depth)?.type.name === 'taskItem' ||
-                                     $from.node($from.depth - 1)?.type.name === 'bulletList' ||
-                                     $from.node($from.depth - 1)?.type.name === 'orderedList' ||
-                                     $from.node($from.depth - 1)?.type.name === 'taskList' ||
-                                     $from.node($from.depth - 1)?.type.name === 'listItem' ||
-                                     $from.node($from.depth - 1)?.type.name === 'taskItem';
-                    if (isInList) {
-                        // Return false to let Tiptap's ListItem extension handle Tab
-                        return false;
-                    }
-
-                    // For regular text, prevent Tab from escaping the editor
-                    event.preventDefault();
-                    return true;
+                    // For lists and other content, let Indent extension handle it
+                    return false;
                 }
                 return false;
             },

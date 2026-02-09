@@ -1,4 +1,5 @@
 import Heading from '@tiptap/extension-heading';
+import { Extension } from '@tiptap/core';
 
 function slugify(text: string): string {
     return text
@@ -51,5 +52,46 @@ export const HeadingWithId = Heading.extend({
             { ...HTMLAttributes, id },
             0,
         ];
+    },
+});
+
+// Custom extension to handle backspace in lists like a normal markdown editor
+export const BackspaceListBehavior = Extension.create({
+    name: 'backspaceListBehavior',
+
+    addKeyboardShortcuts() {
+        return {
+            Backspace: () => {
+                const { state } = this.editor;
+                const { $from, empty } = state.selection;
+
+                // Only handle if there's no selection (cursor only)
+                if (!empty) return false;
+
+                // Check if cursor is at the start of a node
+                const isAtStart = $from.parentOffset === 0;
+                if (!isAtStart) return false;
+
+                // Check if we're in a list item
+                const isInListItem = $from.node($from.depth)?.type.name === 'listItem' ||
+                                     $from.node($from.depth - 1)?.type.name === 'listItem';
+
+                // Check if we're in a task item
+                const isInTaskItem = $from.node($from.depth)?.type.name === 'taskItem' ||
+                                     $from.node($from.depth - 1)?.type.name === 'taskItem';
+
+                if (isInListItem) {
+                    // Try to lift the list item (dedent or convert to paragraph)
+                    return this.editor.commands.liftListItem('listItem');
+                }
+
+                if (isInTaskItem) {
+                    // Try to lift the task item (dedent or convert to paragraph)
+                    return this.editor.commands.liftListItem('taskItem');
+                }
+
+                return false;
+            },
+        };
     },
 });

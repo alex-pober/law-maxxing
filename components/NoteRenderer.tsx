@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { HeadingWithId } from '@/lib/tiptap-extensions';
+import { Indent } from '@/lib/tiptap-indent-extension';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
@@ -26,6 +27,7 @@ export function NoteRenderer({ content }: NoteRendererProps) {
             HeadingWithId.configure({
                 levels: [1, 2, 3, 4, 5, 6],
             }),
+            Indent,
             Link.configure({
                 openOnClick: true,
             }),

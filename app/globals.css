@@ -165,19 +165,19 @@
 }
 
 .prose h2 {
-  @apply text-2xl font-semibold mt-5 mb-2 leading-snug ml-4;
+  @apply text-2xl font-semibold mt-5 mb-2 leading-snug;
 }
 
 .prose h3 {
-  @apply text-xl font-semibold mt-4 mb-2 leading-snug ml-8;
+  @apply text-xl font-semibold mt-4 mb-2 leading-snug;
 }
 
 .prose h4 {
-  @apply text-lg font-medium mt-3 mb-2 leading-snug ml-12;
+  @apply text-lg font-medium mt-3 mb-2 leading-snug;
 }
 
 .prose h5 {
-  @apply text-base font-medium mt-2 mb-2 leading-snug ml-16;
+  @apply text-base font-medium mt-2 mb-2 leading-snug;
 }
 
 .prose h6 {
@@ -273,52 +273,50 @@
   @apply my-2 leading-relaxed;
 }
 
-/* Paragraphs/lists following headings - indent to match parent heading level.
-   Uses general sibling selector (~) to match ANY content after a heading.
+/* TAB-based block indentation - applies to any element with data-indent attribute.
+   Removed automatic heading hierarchy indentation for traditional markdown look.
+   Users can now manually indent any content (paragraphs, headings, blockquotes, etc.)
+   using TAB key. */
 
-   Order matters: rules declared LATER in CSS win when specificity is equal.
-   So h1 must be first (reset), then h2 → h3 → h4 → h5.
-
-   LIMITATION: CSS cannot determine the "nearest preceding heading" - it only
-   knows that SOME heading exists before the content. This works correctly when
-   headings follow logical hierarchy (h1 → h2 → h3). However, if you jump back
-   up (h3 then h2), content after the h2 will still match h3 ~ p (declared later),
-   giving incorrect indentation. For such documents, JavaScript-based class
-   assignment would be needed. */
-
-/* Reset: content after h1 gets no indentation (declared first, lowest priority) */
-.prose h1 ~ p,
-.prose h1 ~ ul,
-.prose h1 ~ ol {
-  margin-left: 0;
+/* TAB-based block indentation - applies to any element with data-indent */
+.prose [data-indent="1"],
+.tiptap [data-indent="1"] {
+  padding-left: 2rem;
 }
 
-/* Content after h2 gets ml-4 */
-.prose h2 ~ p,
-.prose h2 ~ ul,
-.prose h2 ~ ol {
-  margin-left: 1rem;
+.prose [data-indent="2"],
+.tiptap [data-indent="2"] {
+  padding-left: 4rem;
 }
 
-/* Content after h3 gets ml-8 (overrides h2 if h3 comes later in document) */
-.prose h3 ~ p,
-.prose h3 ~ ul,
-.prose h3 ~ ol {
-  margin-left: 2rem;
+.prose [data-indent="3"],
+.tiptap [data-indent="3"] {
+  padding-left: 6rem;
 }
 
-/* Content after h4 gets ml-12 */
-.prose h4 ~ p,
-.prose h4 ~ ul,
-.prose h4 ~ ol {
-  margin-left: 3rem;
+.prose [data-indent="4"],
+.tiptap [data-indent="4"] {
+  padding-left: 8rem;
 }
 
-/* Content after h5 gets ml-16 (highest priority, declared last) */
-.prose h5 ~ p,
-.prose h5 ~ ul,
-.prose h5 ~ ol {
-  margin-left: 4rem;
+.prose [data-indent="5"],
+.tiptap [data-indent="5"] {
+  padding-left: 10rem;
+}
+
+.prose [data-indent="6"],
+.tiptap [data-indent="6"] {
+  padding-left: 12rem;
+}
+
+.prose [data-indent="7"],
+.tiptap [data-indent="7"] {
+  padding-left: 14rem;
+}
+
+.prose [data-indent="8"],
+.tiptap [data-indent="8"] {
+  padding-left: 16rem;
 }
 
 /* Tiptap Editor Styles */
