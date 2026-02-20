@@ -20,19 +20,22 @@ async function getFolderPath(folderId: string | null, userId: string): Promise<F
     if (!folderId) return [];
 
     const supabase = await createClient();
+
+    // Fetch all user folders in one query instead of one per level
+    const { data: allFolders } = await supabase
+        .from('folders')
+        .select('id, name, parent_id')
+        .eq('user_id', userId);
+
+    if (!allFolders) return [];
+
+    const folderMap = new Map(allFolders.map(f => [f.id, f as Folder]));
     const path: Folder[] = [];
     let currentId: string | null = folderId;
 
     while (currentId) {
-        const { data } = await supabase
-            .from('folders')
-            .select('id, name, parent_id')
-            .eq('id', currentId)
-            .eq('user_id', userId)
-            .single();
-
-        if (!data) break;
-        const folder: Folder = { id: data.id, name: data.name, parent_id: data.parent_id };
+        const folder = folderMap.get(currentId);
+        if (!folder) break;
         path.unshift(folder);
         currentId = folder.parent_id;
     }

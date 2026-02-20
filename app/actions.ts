@@ -1301,7 +1301,7 @@ ${transcript}
 Generate comprehensive law school study notes following the above structure, paying special attention to definitions, black letter law, repeated concepts, and anything the teacher signals will be tested:`
 
     const model = genAI.getGenerativeModel({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3.1-pro-preview',
         generationConfig: {
             temperature: 0.3,
         }
@@ -1432,7 +1432,7 @@ export async function generateNotesFromPpt(formData: FormData): Promise<{ markdo
 
         // 7. Generate Content with Gemini
         const model = genAI.getGenerativeModel({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             generationConfig: {
                 temperature: 0.3,
             }

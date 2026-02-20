@@ -9,6 +9,31 @@ interface TocItem {
     level: number;
 }
 
+interface TocNode {
+    item: TocItem;
+    children: TocNode[];
+}
+
+function buildTree(headings: TocItem[]): TocNode[] {
+    const root: TocNode[] = [];
+    const stack: { node: TocNode; level: number }[] = [];
+
+    for (const item of headings) {
+        const node: TocNode = { item, children: [] };
+        while (stack.length > 0 && stack[stack.length - 1].level >= item.level) {
+            stack.pop();
+        }
+        if (stack.length === 0) {
+            root.push(node);
+        } else {
+            stack[stack.length - 1].node.children.push(node);
+        }
+        stack.push({ node, level: item.level });
+    }
+
+    return root;
+}
+
 export function SidebarRight() {
     const [headings, setHeadings] = useState<TocItem[]>([]);
     const [activeId, setActiveId] = useState<string>('');
@@ -119,30 +144,63 @@ export function SidebarRight() {
         }
     };
 
-    return (
-        <div className="text-sm ">
-            <p className="font-medium truncate" title={displayTitle}>{displayTitle}</p>
-            <ul className="m-0 list-none">
-                {headings.map((item, index) => (
-                    <li key={`${item.id}-${index}`} className="mt-0 pt-2">
+    const renderTocNodes = (nodes: TocNode[], depth: number = 0): React.ReactNode => (
+        <ul
+            className={cn(
+                "list-none m-0",
+                depth > 0 && "border-l border-border/25 ml-[7px] pl-[10px] mt-0"
+            )}
+        >
+            {nodes.map(({ item, children }, index) => {
+                const isActive = item.id === activeId;
+
+                return (
+                    <li key={`${item.id}-${index}`} className="mt-0 pt-1.5">
                         <a
-                            ref={item.id === activeId ? activeItemRef : null}
+                            ref={isActive ? activeItemRef : null}
                             href={`#${item.id}`}
                             onClick={(e) => handleClick(e, item.id)}
                             tabIndex={-1}
                             className={cn(
-                                "inline-block no-underline transition-colors hover:text-foreground cursor-pointer",
-                                item.id === activeId
-                                    ? "font-medium text-foreground"
-                                    : "text-muted-foreground"
+                                "flex items-center gap-1.5 no-underline transition-colors cursor-pointer",
+                                depth === 0 && "text-[15px] font-medium",
+                                depth === 1 && "text-[13px]",
+                                depth >= 2 && "text-[12px]",
+                                isActive
+                                    ? "text-foreground"
+                                    : depth === 0
+                                        ? "text-foreground/75 hover:text-foreground"
+                                        : depth === 1
+                                            ? "text-muted-foreground hover:text-foreground"
+                                            : "text-muted-foreground/70 hover:text-muted-foreground",
                             )}
-                            style={{ paddingLeft: `${(item.level - 1) * 1}rem` }}
                         >
-                            {item.text}
+                            <span
+                                className={cn(
+                                    "shrink-0 rounded-full transition-colors",
+                                    depth === 0 && "w-[5px] h-[5px]",
+                                    depth === 1 && "w-[4px] h-[4px]",
+                                    depth >= 2 && "w-[3px] h-[3px]",
+                                    isActive
+                                        ? "bg-primary"
+                                        : depth === 0
+                                            ? "bg-foreground/40"
+                                            : "bg-muted-foreground/40"
+                                )}
+                            />
+                            <span className="truncate leading-snug">{item.text}</span>
                         </a>
+                        {children.length > 0 && renderTocNodes(children, depth + 1)}
                     </li>
-                ))}
-            </ul>
+                );
+            })}
+        </ul>
+    );
+
+    return (
+        <div className="text-sm">
+            <p className="font-medium truncate" title={displayTitle}>{displayTitle}</p>
+            {renderTocNodes(buildTree(headings))}
         </div>
     );
 }
