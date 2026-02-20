@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, FileAudio, Loader2, ArrowLeft, Sparkles } from 'lucide-react'
+import { Upload, FileAudio, ArrowLeft, Sparkles, Check, Circle, Loader2, Bot } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
 import { parseVttContent } from '@/lib/vtt-parser'
 import { generateNotesFromVtt, saveGeneratedNotes } from '@/app/actions'
 
@@ -23,7 +24,23 @@ interface VttConvertDialogProps {
     targetFolderId: string | null
 }
 
-type Step = 'upload' | 'preview'
+type Step = 'upload' | 'preview' | 'generating'
+
+const AI_MODEL = 'gemini-3.1-pro-preview'
+
+type GenStep = {
+    id: number
+    label: string
+    description: string
+    status: 'pending' | 'active' | 'complete' | 'error'
+}
+
+const initialGenSteps: GenStep[] = [
+    { id: 1, label: 'Transcript parsed', description: 'VTT cleaned and ready', status: 'complete' },
+    { id: 2, label: 'Sending to Gemini AI', description: 'Uploading transcript for analysis', status: 'pending' },
+    { id: 3, label: 'Generating study notes', description: 'AI structuring your notes', status: 'pending' },
+    { id: 4, label: 'Saving to library', description: 'Writing notes to your account', status: 'pending' },
+]
 
 export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConvertDialogProps) {
     const router = useRouter()
@@ -33,15 +50,17 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
     const [fileContent, setFileContent] = useState<string>('')
     const [parsedTranscript, setParsedTranscript] = useState<string>('')
     const [noteTitle, setNoteTitle] = useState<string>('')
-    const [isGenerating, setIsGenerating] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isDragOver, setIsDragOver] = useState(false)
+    const [genSteps, setGenSteps] = useState<GenStep[]>(initialGenSteps)
+
+    const updateGenStep = (id: number, status: GenStep['status']) => {
+        setGenSteps(prev => prev.map(s => s.id === id ? { ...s, status } : s))
+    }
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (file) {
-            await processFile(file)
-        }
+        if (file) await processFile(file)
     }
 
     const processFile = async (file: File) => {
@@ -53,15 +72,12 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
         setSelectedFile(file)
         setError(null)
 
-        // Read and parse the file
         const content = await file.text()
         setFileContent(content)
 
-        // Parse the VTT content
         const parsed = parseVttContent(content)
         setParsedTranscript(parsed)
 
-        // Generate title from filename
         const baseTitle = file.name.replace(/\.vtt$/i, '')
         const title = baseTitle
             .replace(/[_-]/g, ' ')
@@ -69,7 +85,6 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
             .replace(/\b\w/g, c => c.toUpperCase())
         setNoteTitle(title)
 
-        // Move to preview step
         setStep('preview')
     }
 
@@ -86,36 +101,49 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault()
         setIsDragOver(false)
-
         const file = e.dataTransfer.files?.[0]
-        if (file) {
-            await processFile(file)
-        }
+        if (file) await processFile(file)
     }
 
     const handleGenerateNotes = async () => {
         if (!selectedFile || !parsedTranscript) return
 
-        setIsGenerating(true)
         setError(null)
+        setGenSteps(initialGenSteps)
+        setStep('generating')
+
+        let currentStepId = 1
 
         try {
+            // Step 2: Send to AI
+            currentStepId = 2
+            updateGenStep(2, 'active')
             const result = await generateNotesFromVtt(fileContent, selectedFile.name)
+            updateGenStep(2, 'complete')
 
-            // Save the generated notes
+            // Step 3: Generating (visual beat)
+            currentStepId = 3
+            updateGenStep(3, 'active')
+            await new Promise(res => setTimeout(res, 400))
+            updateGenStep(3, 'complete')
+
+            // Step 4: Save
+            currentStepId = 4
+            updateGenStep(4, 'active')
             const saveResult = await saveGeneratedNotes(
                 result.markdown,
                 noteTitle,
                 selectedFile.name,
                 targetFolderId
             )
+            updateGenStep(4, 'complete')
 
+            await new Promise(res => setTimeout(res, 500))
             resetAndClose()
             router.push(`/notes/${saveResult.noteId}`)
         } catch (err) {
+            updateGenStep(currentStepId, 'error')
             setError(err instanceof Error ? err.message : 'Failed to generate notes')
-        } finally {
-            setIsGenerating(false)
         }
     }
 
@@ -135,37 +163,39 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
         setParsedTranscript('')
         setNoteTitle('')
         setError(null)
+        setGenSteps(initialGenSteps)
         onOpenChange(false)
     }
 
     const handleClose = () => {
-        if (!isGenerating) {
-            resetAndClose()
-        }
+        if (step !== 'generating') resetAndClose()
     }
+
+    const isGenerating = step === 'generating'
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className={step === 'preview' ? 'max-w-4xl max-h-[90vh]' : ''}>
                 <DialogHeader>
                     <DialogTitle>
-                        {step === 'upload' ? 'Import VTT Transcript' : 'Preview Parsed Transcript'}
+                        {step === 'upload' && 'Import VTT Transcript'}
+                        {step === 'preview' && 'Preview Parsed Transcript'}
+                        {step === 'generating' && 'Generating Your Notes'}
                     </DialogTitle>
                     <DialogDescription>
-                        {step === 'upload'
-                            ? 'Upload a .vtt transcript file to convert into study notes.'
-                            : 'Review the parsed transcript before generating notes with AI.'}
+                        {step === 'upload' && 'Upload a .vtt transcript file to convert into study notes.'}
+                        {step === 'preview' && 'Review the parsed transcript before generating notes with AI.'}
+                        {step === 'generating' && 'Please wait while AI processes your transcript.'}
                     </DialogDescription>
                 </DialogHeader>
 
-                {step === 'upload' ? (
+                {step === 'upload' && (
                     <>
                         <div
                             className={`
                                 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
                                 transition-colors duration-200
                                 ${isDragOver ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
-                                ${selectedFile ? 'bg-accent/50' : ''}
                             `}
                             onClick={() => fileInputRef.current?.click()}
                             onDragOver={handleDragOver}
@@ -179,7 +209,6 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
                                 onChange={handleFileSelect}
                                 className="hidden"
                             />
-
                             <div className="flex flex-col items-center gap-2">
                                 <Upload className="h-10 w-10 text-muted-foreground" />
                                 <p className="text-sm text-muted-foreground">
@@ -188,17 +217,15 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
                             </div>
                         </div>
 
-                        {error && (
-                            <p className="text-sm text-destructive">{error}</p>
-                        )}
+                        {error && <p className="text-sm text-destructive">{error}</p>}
 
                         <DialogFooter>
-                            <Button variant="outline" onClick={handleClose}>
-                                Cancel
-                            </Button>
+                            <Button variant="outline" onClick={handleClose}>Cancel</Button>
                         </DialogFooter>
                     </>
-                ) : (
+                )}
+
+                {step === 'preview' && (
                     <>
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
@@ -230,38 +257,113 @@ export function VttConvertDialog({ open, onOpenChange, targetFolderId }: VttConv
                             </div>
                         </div>
 
-                        {error && (
-                            <p className="text-sm text-destructive">{error}</p>
-                        )}
+                        {error && <p className="text-sm text-destructive">{error}</p>}
 
                         <DialogFooter className="flex justify-between sm:justify-between">
-                            <Button variant="outline" onClick={handleBack} disabled={isGenerating}>
+                            <Button variant="outline" onClick={handleBack}>
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 Back
                             </Button>
                             <div className="flex gap-2">
-                                <Button variant="outline" onClick={handleClose} disabled={isGenerating}>
-                                    Cancel
-                                </Button>
+                                <Button variant="outline" onClick={handleClose}>Cancel</Button>
                                 <Button
                                     onClick={handleGenerateNotes}
-                                    disabled={isGenerating || !noteTitle.trim() || !parsedTranscript}
+                                    disabled={!noteTitle.trim() || !parsedTranscript}
                                 >
-                                    {isGenerating ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="h-4 w-4 mr-2" />
-                                            Generate Notes with AI
-                                        </>
-                                    )}
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Generate Notes with AI
                                 </Button>
                             </div>
                         </DialogFooter>
                     </>
+                )}
+
+                {step === 'generating' && (
+                    <div className="space-y-6 py-2">
+                        {/* File + Model info */}
+                        <div className="rounded-lg border bg-muted/30 px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <FileAudio className="h-4 w-4 text-primary shrink-0" />
+                                <span className="text-sm font-medium truncate">{selectedFile?.name}</span>
+                            </div>
+                            <Badge variant="secondary" className="flex items-center gap-1.5 w-fit">
+                                <Bot className="h-3 w-3" />
+                                {AI_MODEL}
+                            </Badge>
+                        </div>
+
+                        {/* Steps */}
+                        <div className="space-y-1">
+                            {genSteps.map((s, i) => {
+                                const isActive = s.status === 'active'
+                                const isDone = s.status === 'complete'
+                                const isError = s.status === 'error'
+                                const isPending = s.status === 'pending'
+
+                                return (
+                                    <div key={s.id} className="flex items-start gap-3 p-3 rounded-lg transition-colors duration-300">
+                                        {/* Icon */}
+                                        <div className="mt-0.5 shrink-0">
+                                            {isDone && (
+                                                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                                    <Check className="h-3 w-3 text-primary-foreground" />
+                                                </div>
+                                            )}
+                                            {isActive && (
+                                                <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                                            )}
+                                            {isError && (
+                                                <div className="h-5 w-5 rounded-full bg-destructive flex items-center justify-center">
+                                                    <span className="text-[10px] text-destructive-foreground font-bold">!</span>
+                                                </div>
+                                            )}
+                                            {isPending && (
+                                                <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                            )}
+                                        </div>
+
+                                        {/* Text */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-sm font-medium leading-none ${
+                                                isDone ? 'text-foreground' :
+                                                isActive ? 'text-foreground' :
+                                                isError ? 'text-destructive' :
+                                                'text-muted-foreground'
+                                            }`}>
+                                                {s.label}
+                                            </p>
+                                            <p className={`text-xs mt-1 ${
+                                                isActive ? 'text-muted-foreground' : 'text-muted-foreground/60'
+                                            }`}>
+                                                {s.description}
+                                            </p>
+                                        </div>
+
+                                        {/* Connector line (not for last) */}
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        {error && (
+                            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3">
+                                <p className="text-sm text-destructive">{error}</p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2"
+                                    onClick={() => {
+                                        setGenSteps(initialGenSteps)
+                                        setStep('preview')
+                                        setError(null)
+                                    }}
+                                >
+                                    <ArrowLeft className="h-3 w-3 mr-1.5" />
+                                    Go back and retry
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 )}
             </DialogContent>
         </Dialog>
